@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1e3a5f">
+<title>Guardachuvômetro</title>
+<style>
+  :root{
+    --bg:#f4f6f9; --card:#ffffff; --ink:#1c2733; --muted:#6b7a8c;
+    --brand:#1e3a5f; --brand2:#2e6da4; --accent:#4a90d9;
+    --ok:#2e8b57; --warn:#c0392b; --loan:#b07d2b;
+    --chip:#e8eef5; --line:#e3e9f0;
+    --radius:14px; --shadow:0 1px 4px rgba(20,40,70,.08);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); font-size:15px; padding-bottom:76px;}
+  #bgfx{position:fixed; inset:0; z-index:0; pointer-events:none;}
+  main{position:relative; z-index:1;}
+  svg.i{vertical-align:-3px; flex:none;}
+  header{background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#fff; padding:16px 18px 14px; position:sticky; top:0; z-index:20;}
+  header h1{font-size:20px; font-weight:700; letter-spacing:.3px; display:flex; align-items:center; gap:8px;}
+  header .sub{font-size:12px; opacity:.9; margin-top:4px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  header .sub span{display:inline-flex; align-items:center; gap:4px;}
+  main{padding:14px; max-width:560px; margin:0 auto;}
+
+  /* ---------- animações (discretas) ---------- */
+  @keyframes fadeUp{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+  @keyframes sheetUp{from{opacity:.4; transform:translateY(40px)} to{opacity:1; transform:none}}
+  @keyframes fadeIn{from{opacity:0} to{opacity:1}}
+  main section{animation:fadeUp .22s ease;}
+  .ucard,.card,.kpi{animation:fadeUp .3s ease backwards;}
+  .ucard:nth-child(2),.card:nth-child(2){animation-delay:.05s}
+  .ucard:nth-child(3),.card:nth-child(3){animation-delay:.1s}
+  .ucard:nth-child(4),.card:nth-child(4){animation-delay:.15s}
+  .modal.open .sheet{animation:sheetUp .25s ease;}
+  .modal.open{animation:fadeIn .2s ease;}
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
+
+  /* ---------- nav ---------- */
+  nav{position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--line); display:flex; z-index:30;}
+  nav button{flex:1; border:0; background:none; padding:9px 2px 10px; font-size:11px; color:var(--muted); cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; transition:color .15s;}
+  nav button.on{color:var(--brand2); font-weight:600;}
+  /* ---------- cards ---------- */
+  .card{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; margin-bottom:12px;}
+  .card h2{font-size:15px; margin-bottom:10px; color:var(--brand); display:flex; align-items:center; gap:7px;}
+  .empty{text-align:center; color:var(--muted); padding:36px 16px; font-size:14px; line-height:1.6;}
+  .empty .big{display:block; margin-bottom:8px; color:var(--accent);}
+  /* token "deixei ele aqui" */
+  .token{width:100%; border:0; border-radius:16px; padding:15px; margin-bottom:14px; cursor:pointer;
+    background:linear-gradient(135deg,var(--brand2),var(--accent)); color:#fff; font-size:15px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 3px 10px rgba(46,109,164,.35);}
+  .token:active{transform:scale(.98);}
+  /* umbrella card */
+  .ucard{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:12px; overflow:hidden;}
+  .ucard.retired{opacity:.75;}
+  .uhead{display:flex; gap:12px; padding:12px 14px 8px; align-items:center;}
+  .uphoto{width:64px; height:64px; border-radius:12px; background:var(--chip); flex:none; display:flex; align-items:center; justify-content:center; color:var(--brand2); overflow:hidden; cursor:pointer;}
+  .uphoto img{width:100%; height:100%; object-fit:cover;}
+  .uname{font-weight:700; font-size:16px; display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+  .utags{margin-top:4px; display:flex; gap:5px; flex-wrap:wrap;}
+  .chip{background:var(--chip); color:var(--brand); font-size:11px; padding:2px 8px; border-radius:99px; font-weight:600; display:inline-flex; align-items:center; gap:4px;}
+  .chip.red{background:#fbe9e7; color:var(--warn);}
+  .chip.green{background:#e6f4ea; color:var(--ok);}
+  .chip.gold{background:#fdf3dc; color:var(--loan);}
+  .rankbadge{font-size:11px; padding:2px 9px; border-radius:99px; font-weight:800; background:#eef4fb; color:var(--brand2); border:1px solid #d6e5f5; white-space:nowrap;}
+  .ustats{display:grid; grid-template-columns:repeat(4,1fr); padding:8px 10px 10px;}
+  .stat{text-align:center; padding:6px 2px;}
+  .stat + .stat{border-left:1px solid var(--line);}
+  .ucard .utrow{padding:0 14px 4px; margin-top:0;}
+  .stat .v{font-weight:700; font-size:16px; color:var(--brand2);}
+  .stat .l{font-size:10px; color:var(--muted); margin-top:2px; display:flex; align-items:center; justify-content:center; gap:3px;}
+  .ufoot{display:flex; gap:8px; padding:8px 14px 12px;}
+  .why{font-size:12px; color:var(--muted); padding:0 14px 12px; display:flex; align-items:center; gap:6px;}
+  .lastloc{font-size:11.5px; color:var(--muted); padding:0 14px 10px; display:flex; align-items:center; gap:5px;}
+  .lastloc a{color:var(--brand2); text-decoration:none; font-weight:600;}
+  /* ---------- forms ---------- */
+  label{display:block; font-size:12px; font-weight:600; color:var(--muted); margin:14px 0 6px;}
+  input[type=text],input[type=email],input[type=number],input[type=date],select,textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--ink); font-family:inherit;}
+  textarea{resize:vertical; min-height:56px;}
+  .row{display:flex; gap:10px;} .row>*{flex:1;}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; cursor:pointer;
+    background:linear-gradient(165deg,var(--accent),var(--brand2)); color:#fff;
+    box-shadow:0 2px 6px rgba(46,109,164,.28); transition:transform .12s ease, box-shadow .12s ease;}
+  .btn:active{transform:scale(.965); box-shadow:0 1px 3px rgba(46,109,164,.2);}
+  .btn.full{width:100%; margin-top:16px;}
+  .btn.ghost{background:#fff; color:var(--brand); border:1px solid var(--line); box-shadow:0 1px 3px rgba(20,40,70,.07);}
+  .btn.danger{background:#fff; color:var(--warn); border:1px solid #f3d4ce; box-shadow:0 1px 3px rgba(192,57,43,.08);}
+  .btn.gold{background:#fff; color:var(--loan); border:1px solid #eee0c2; box-shadow:0 1px 3px rgba(176,125,43,.1);}
+  .btn.green{background:#fff; color:var(--ok); border:1px solid #cfe7d8; box-shadow:0 1px 3px rgba(46,139,87,.1);}
+  .btn.small{padding:8px 10px; font-size:12px; flex:1;}
+  /* barra de ações do cartão */
+  .uclick{cursor:pointer;}
+  .usince{font-size:11.5px; color:var(--muted); margin-top:3px; display:flex; align-items:center; gap:4px;}
+  .abar{display:flex; border-top:1px solid var(--line);}
+  .abar button{flex:1; border:0; background:none; padding:9px 2px 10px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:11px; font-weight:700; font-family:inherit; color:var(--muted);
+    transition:transform .1s ease, background .15s;}
+  .abar button:active{transform:scale(.93); background:var(--bg);}
+  .abar button + button{border-left:1px solid var(--line);}
+  .abar .c-gold{color:var(--loan);} .abar .c-red{color:var(--warn);}
+  .abar .c-green{color:var(--ok);} .abar .c-mut{color:#7d8b9b;}
+  .abar .c-blue{color:var(--brand2);}
+  .abar .sub{font-size:9px; font-weight:600; color:var(--muted); margin-top:1px; max-width:96%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lostbox{margin:0 14px 12px; background:#fbe9e7; border-radius:10px; padding:9px 12px; font-size:12px; color:var(--warn); line-height:1.5;}
+  .lostbox a{color:var(--warn); font-weight:700;}
+  .seg{display:flex; gap:6px; flex-wrap:wrap;}
+  .seg button{border:1px solid var(--line); background:#fff; border-radius:99px; padding:7px 12px; font-size:13px; cursor:pointer; color:var(--ink); display:inline-flex; align-items:center; gap:5px; transition:all .15s;}
+  .seg button.on{background:var(--brand2); color:#fff; border-color:var(--brand2); font-weight:600;}
+  /* formatos com desenhinho */
+  .formatos{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
+  .fmt{border:1.5px solid var(--line); border-radius:12px; background:#fff; padding:8px 2px 6px; text-align:center; cursor:pointer; transition:all .15s; color:var(--ink);}
+  .fmt svg{display:block; margin:0 auto 3px; color:var(--brand2);}
+  .fmt .fl{font-size:10px; font-weight:600; color:var(--muted); line-height:1.2;}
+  .fmt.on{border-color:var(--brand2); background:#eef4fb; box-shadow:0 0 0 1px var(--brand2);}
+  .fmt.on .fl{color:var(--brand2);}
+  .photos3{display:flex; gap:8px;}
+  .pslot{flex:1; aspect-ratio:1; border:2px dashed var(--line); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; overflow:hidden; background:#fff; position:relative;}
+  .pslot img{width:100%; height:100%; object-fit:cover;}
+  .pslot .x{position:absolute; top:2px; right:2px; background:rgba(0,0,0,.55); color:#fff; border-radius:50%; width:20px; height:20px; font-size:11px; display:flex; align-items:center; justify-content:center;}
+  .pslot.round{border-radius:50%; width:88px; height:88px; flex:none; aspect-ratio:auto;}
+  .ph-user{display:flex; justify-content:center; margin-top:8px;}
+  header img.avatar{width:20px; height:20px; border-radius:50%; object-fit:cover;}
+  .cb3{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center; margin-top:4px;}
+  .cb3 > div{background:var(--chip); border-radius:10px; padding:9px 4px;}
+  .cb3 b{display:block; color:var(--brand2); font-size:14px;}
+  .cb3 span{font-size:10px; color:var(--muted);}
+  /* ---------- ranking ---------- */
+  .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px;}
+  .kpi{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:10px 6px; text-align:center;}
+  .kpi .v{font-size:16px; font-weight:800; color:var(--brand2);}
+  .kpi .l{font-size:10px; color:var(--muted); margin-top:2px;}
+  .rank li{list-style:none; display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px;}
+  .rank li:last-child{border-bottom:0;}
+  .pos{width:26px; height:26px; border-radius:50%; background:var(--chip); color:var(--brand); font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none;}
+  .pos.g{background:linear-gradient(135deg,#f6d365,#e8b93c); color:#7a5800;}
+  .pos.s{background:linear-gradient(135deg,#e3e8ee,#b9c2cc); color:#4a5560;}
+  .pos.b{background:linear-gradient(135deg,#e8bb8f,#c98d5a); color:#6b3f16;}
+  .rank .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rank .val{font-weight:700; color:var(--brand); flex:none; font-size:13px;}
+  /* ---------- modal ---------- */
+  .modal{position:fixed; inset:0; background:rgba(10,25,45,.5); display:none; align-items:flex-end; justify-content:center; z-index:50;}
+  .modal.open{display:flex;}
+  .sheet{background:var(--card); width:100%; max-width:560px; border-radius:18px 18px 0 0; padding:18px 16px 24px; max-height:88vh; overflow-y:auto;}
+  .sheet h3{font-size:16px; color:var(--brand); margin-bottom:4px; display:flex; align-items:center; gap:7px;}
+  .gal{display:flex; gap:8px; margin-top:10px;}
+  .gal img{width:32%; aspect-ratio:1; object-fit:cover; border-radius:10px;}
+  .toast{position:fixed; bottom:86px; left:50%; transform:translateX(-50%); background:var(--brand); color:#fff; padding:10px 18px; border-radius:99px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:70; white-space:nowrap; max-width:92vw; overflow:hidden; text-overflow:ellipsis;}
+  .toast.show{opacity:1;}
+  .hint{font-size:12px; color:var(--muted); line-height:1.5; margin-top:8px;}
+  .georow{display:flex; gap:8px; margin-top:8px;}
+  .georow input{flex:1;}
+  .cityopt{padding:10px 6px; border-bottom:1px solid var(--line); cursor:pointer; font-size:14px;}
+  .detail-table{width:100%; font-size:13px; border-collapse:collapse; margin-top:10px;}
+  .detail-table td{padding:5px 0; border-bottom:1px solid var(--line);}
+  .detail-table td:last-child{text-align:right; font-weight:600;}
+  .sec{margin-top:16px;}
+  .sec h4{font-size:13px; color:var(--brand); display:flex; align-items:center; gap:6px; margin-bottom:6px;}
+  .mini{font-size:12.5px; color:var(--ink); padding:7px 0; border-bottom:1px solid var(--line); display:flex; gap:8px; align-items:center;}
+  .mini:last-child{border-bottom:0;}
+  .mini .mm{flex:1; min-width:0;}
+  .mini .md{color:var(--muted); font-size:11px;}
+  .mini a{color:var(--brand2); text-decoration:none; font-weight:600; font-size:11.5px;}
+  .mini img{width:34px; height:34px; border-radius:8px; object-fit:cover;}
+  .progress{height:7px; background:var(--chip); border-radius:99px; overflow:hidden; margin-top:6px;}
+  .progress div{height:100%; background:linear-gradient(90deg,var(--brand2),var(--accent)); border-radius:99px; transition:width .4s;}
+  /* ---------- onboarding ---------- */
+  #onboard{position:fixed; inset:0; z-index:80; background:linear-gradient(160deg,var(--brand),var(--brand2)); display:none; align-items:center; justify-content:center; padding:20px;}
+  #onboard.open{display:flex;}
+  #onboard .obcard{background:var(--card); border-radius:20px; padding:26px 20px; width:100%; max-width:400px; animation:fadeUp .35s ease;}
+  #onboard h2{color:var(--brand); font-size:20px; display:flex; align-items:center; gap:8px;}
+  /* ---------- relatório ---------- */
+  #report{position:fixed; inset:0; z-index:90; background:#fff; overflow-y:auto; display:none;}
+  #report.open{display:block; animation:fadeIn .2s ease;}
+  .rep-tools{position:sticky; top:0; background:var(--brand); padding:10px 14px; display:flex; gap:8px; z-index:5;}
+  .rep-tools .btn{padding:8px 14px; font-size:13px;}
+  .rep-body{max-width:640px; margin:0 auto; padding:22px 18px 60px; color:#1c2733;}
+  .rep-body h1{font-size:22px; color:var(--brand); display:flex; gap:8px; align-items:center;}
+  .rep-body .rp-sub{color:#6b7a8c; font-size:12px; margin:4px 0 14px;}
+  .rep-body h2{font-size:15px; color:var(--brand2); margin:18px 0 6px; border-bottom:2px solid var(--chip); padding-bottom:4px;}
+  .rep-body table{width:100%; border-collapse:collapse; font-size:13px;}
+  .rep-body td{padding:5px 4px; border-bottom:1px solid #eef1f5;}
+  .rep-body td:last-child{text-align:right; font-weight:600;}
+  .rep-gal{display:flex; gap:8px; margin:8px 0;}
+  .rep-gal img{width:31%; border-radius:10px; aspect-ratio:1; object-fit:cover;}
+  .rep-badge{display:inline-block; padding:4px 14px; border-radius:99px; background:#eef4fb; color:var(--brand2); font-weight:800; font-size:14px; border:1.5px solid var(--brand2);}
+  .rep-item{padding:7px 0; border-bottom:1px solid #eef1f5; font-size:13px;}
+  .rep-item .d{color:#6b7a8c; font-size:11.5px;}
+  .rep-foot{margin-top:26px; text-align:center; color:#8b98a7; font-size:11px; border-top:1px dashed #d5dce4; padding-top:12px;}
+  @media print{
+    header,nav,main,.modal,.toast,#onboard,.rep-tools{display:none!important;}
+    body{padding:0; background:#fff;}
+    #report{position:static; overflow:visible;}
+    .rep-body{padding:0;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bgfx"></canvas>
+
+<header>
+  <h1><span id="hdrIcoUmb"></span>Guardachuvômetro</h1>
+  <div class="sub"><span id="hdrUser"></span><span id="hdrLoc"></span><span id="hdrSync"></span></div>
+</header>
+
+<main>
+  <!-- ============ TAB: MEUS GUARDA-CHUVAS ============ -->
+  <section id="tab-home">
+    <div id="tokenWrap"></div>
+    <div id="homeList"></div>
+  </section>
+
+  <!-- ============ TAB: NOVO ============ -->
+  <section id="tab-new" hidden>
+    <div class="card">
+      <h2 id="newTitle">Cadastrar guarda-chuva</h2>
+
+      <label>Fotos do guarda-chuva (até 3 — capa, aberto, detalhe)</label>
+      <div class="photos3" id="ph-new"></div>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+
+      <label>Apelido do guarda-chuva *</label>
+      <input type="text" id="fName" placeholder="Ex.: Pretinho fiel, Herança da vovó...">
+
+      <label>Formato — qual é a cara dele?</label>
+      <div class="formatos" id="fFormatos"></div>
+
+      <label>Recursos — pode marcar vários</label>
+      <div class="seg" id="fRecursos"></div>
+
+      <label>Funcionalidade especial</label>
+      <input type="text" id="fTypeExtra" placeholder="Ex.: abre e fecha no botão, LED no cabo, cabo de madeira...">
+
+      <label>Como ele chegou até você?</label>
+      <div class="seg" id="fOriginSeg"></div>
+      <div id="fPriceWrap" style="margin-top:8px" hidden>
+        <input type="number" id="fPrice" placeholder="Quanto pagou? (R$)" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <textarea id="fOriginStory" placeholder="Quer contar a história? Ex.: comprei correndo numa chuva surpresa na 25 de Março..." style="margin-top:8px"></textarea>
+
+      <label>Está com você desde</label>
+      <input type="date" id="fDate">
+
+      <button class="btn full" id="btnSave"></button>
+    </div>
+  </section>
+
+  <!-- ============ TAB: RANKING ============ -->
+  <section id="tab-rank" hidden>
+    <button class="btn full ghost" id="btnPtsInfo" onclick="openPointsInfo()" style="margin:0 0 12px"></button>
+    <div class="kpis" id="rankKpis"></div>
+    <div class="card"><h2 id="h-rkPts"></h2><ul class="rank" id="rankPts"></ul></div>
+    <div class="card"><h2 id="h-rkRains"></h2><ul class="rank" id="rankRains"></ul></div>
+    <div class="card"><h2 id="h-rkDist"></h2><ul class="rank" id="rankDist"></ul></div>
+    <div class="card"><h2 id="h-rkDays"></h2><ul class="rank" id="rankDays"></ul></div>
+    <div class="card"><h2 id="h-rkPrice"></h2><ul class="rank" id="rankPrice"></ul></div>
+    <div class="card"><h2 id="h-rkCb"></h2><ul class="rank" id="rankCb"></ul></div>
+    <div class="card"><h2 id="h-rkFound"></h2><ul class="rank" id="rankFound"></ul></div>
+    <div class="card"><h2 id="h-rkLost"></h2><ul class="rank" id="rankLost"></ul></div>
+  </section>
+
+  <!-- ============ TAB: AJUSTES ============ -->
+  <section id="tab-cfg" hidden>
+    <div class="card">
+      <h2 id="h-perfil"></h2>
+      <label style="text-align:center">Sua foto</label>
+      <div class="ph-user"></div>
+      <label>Seu nome</label>
+      <input type="text" id="cfgName">
+      <label>Seu e-mail</label>
+      <input type="email" id="cfgEmail">
+      <button class="btn full" id="btnProfile">Salvar perfil</button>
+    </div>
+    <div class="card">
+      <h2 id="h-local"></h2>
+      <p class="hint">Usada para buscar a pluviometria do seu lugar (Open-Meteo, serviço gratuito). Nada é enviado a mais ninguém.</p>
+      <button class="btn full" id="btnGeo">Usar minha localização (GPS)</button>
+      <div class="georow">
+        <input type="text" id="cityQuery" placeholder="ou busque sua cidade...">
+        <button class="btn ghost" id="btnCity">Buscar</button>
+      </div>
+      <div id="cityResults"></div>
+    </div>
+    <div class="card">
+      <h2 id="h-casa"></h2>
+      <p class="hint">Marque onde fica sua casa: é a referência para calcular a distância das viagens dos seus guarda-chuvas. 🧳</p>
+      <div id="homeInfo" class="hint" style="font-weight:600"></div>
+      <button class="btn full" id="btnHomeGps">Marcar casa pelo GPS</button>
+      <div class="georow">
+        <input type="text" id="homeQuery" placeholder="ou busque o endereço/cidade...">
+        <button class="btn ghost" id="btnHomeCity">Buscar</button>
+      </div>
+      <div id="homeResults"></div>
+    </div>
+    <div class="card">
+      <h2 id="h-transf"></h2>
+      <p class="hint">Comprou um guarda-chuva com histórico? Importe aqui o arquivo de transferência que o vendedor te enviou — ele continua a jornada (e os pontos!) com você.</p>
+      <button class="btn full ghost" id="btnReceive">Receber guarda-chuva</button>
+      <input type="file" id="receiveInput" accept=".json" hidden>
+    </div>
+    <div class="card">
+      <h2 id="h-backup"></h2>
+      <p class="hint">Seus dados ficam somente neste aparelho. Exporte de vez em quando para não perder o histórico.</p>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" id="btnExport">Exportar dados</button>
+        <button class="btn ghost" id="btnImport">Importar</button>
+      </div>
+      <input type="file" id="importInput" accept=".json" hidden>
+    </div>
+    <div class="card">
+      <p class="hint" style="margin:0">Guardachuvômetro v0.6 — protótipo. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público, liberado para uso comercial; fecha com ~4 dias de atraso) complementados pela <b>Open-Meteo</b> nos dias mais recentes. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️</p>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="new"><span class="nico"></span>Novo</button>
+  <button data-tab="home" class="on"><span class="nico"></span>Meus</button>
+  <button data-tab="rank"><span class="nico"></span>Ranking</button>
+  <button data-tab="cfg"><span class="nico"></span>Ajustes</button>
+</nav>
+
+<!-- modal genérico -->
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<!-- onboarding -->
+<div id="onboard"><div class="obcard">
+  <h2><span id="obIco"></span>Bem-vindo!</h2>
+  <p class="hint" style="margin-top:6px">O Guardachuvômetro registra a vida dos seus guarda-chuvas: chuvas enfrentadas, viagens, empréstimos e muito mais. Primeiro, me diga quem é você:</p>
+  <label style="text-align:center">Sua foto (opcional)</label>
+  <div class="ph-user"></div>
+  <label>Seu nome *</label>
+  <input type="text" id="obName" placeholder="Como quer ser chamado?">
+  <label>Seu e-mail *</label>
+  <input type="email" id="obEmail" placeholder="voce@email.com">
+  <button class="btn full" id="obGo">Começar ☂️</button>
+</div></div>
+
+<!-- relatório -->
+<div id="report">
+  <div class="rep-tools">
+    <button class="btn" id="repPrint">Salvar PDF / Imprimir</button>
+    <button class="btn ghost" id="repShare">Compartilhar</button>
+    <button class="btn ghost" id="repClose" style="margin-left:auto">Fechar</button>
+  </div>
+  <div class="rep-body" id="repBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ================= ícones SVG ================= */
+const I = {
+  umbrella:'<path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9Z"/><path d="M12 12v6a2 2 0 0 0 4 0"/><path d="M12 2v1"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  trophy:'<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a3 3 0 0 0 3 4M17 5h3a3 3 0 0 1-3 4"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
+  rain:'<path d="M7 14a4.5 4.5 0 1 1 .6-9A5.5 5.5 0 0 1 18.5 7 3.75 3.75 0 0 1 17.5 14"/><path d="M8 17v2.5M12 16.5V20M16 17v2.5"/>',
+  drop:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9 6.3 6.3M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7 4.9 19.1"/>',
+  pin:'<path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/>',
+  home:'<path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  case:'<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3M9 12v4M15 12v4"/>',
+  camera:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="m8 7 1.5-3h5L16 7"/><circle cx="12" cy="13" r="3.5"/>',
+  tomb:'<path d="M7 21V9a5 5 0 0 1 10 0v12"/><path d="M5 21h14M10 12h4M12 10v4"/>',
+  swap:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+  coin:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7v10M9.5 9.6c0-1 1.1-1.8 2.5-1.8s2.5.8 2.5 1.8-1.1 1.5-2.5 1.8-2.5.8-2.5 1.8 1.1 1.8 2.5 1.8 2.5-.8 2.5-1.8"/>',
+  doc:'<path d="M6 2h8l5 5v15H6Z"/><path d="M14 2v5h5M9 13h6M9 17h6"/>',
+  share:'<circle cx="6" cy="12" r="2.5"/><circle cx="17" cy="5.5" r="2.5"/><circle cx="17" cy="18.5" r="2.5"/><path d="m8.3 10.8 6.4-4M8.3 13.2l6.4 4"/>',
+  down:'<path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/>',
+  up:'<path d="M12 21V9m0 0 4 4m-4-4-4 4M4 3h16"/>',
+  star:'<path d="m12 3 2.7 5.6 6.1.8-4.5 4.3 1.1 6-5.4-2.9L6.6 20l1.1-6L3.2 9.4l6.1-.8Z"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/>',
+  check:'<path d="m4 12 5 5L20 7"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  book:'<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Z"/><path d="M4 19a2 2 0 0 0 2 2h13"/>',
+  bolt:'<path d="M13 2 5 13h5l-1 9 8-11h-5l1-9Z"/>',
+  wind:'<path d="M3 8h9a2.5 2.5 0 1 0-2.5-2.5M3 12h14a2.5 2.5 0 1 1-2.5 2.5M3 16h7a2 2 0 1 1-2 2"/>',
+  bulb:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.8.7-1 1.5-1 2.5h-6c0-1-.2-1.8-1-2.5A6 6 0 0 1 12 3Z"/>',
+  hand:'<path d="M7 11V6a1.5 1.5 0 0 1 3 0v4M10 10V4.5a1.5 1.5 0 0 1 3 0V10M13 10V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M16 11a1.5 1.5 0 0 1 3 1l-1 5a5 5 0 0 1-5 4h-2a5 5 0 0 1-4.3-2.4L4 14.5A1.5 1.5 0 0 1 6.4 13l.6.8V11"/>',
+  updown:'<path d="M8 3v18M8 3 5 6M8 3l3 3M16 21V3M16 21l-3-3M16 21l3-3"/>',
+  cup:'<path d="M4 9a8 8 0 0 0 16 0"/><path d="M12 9v9a2 2 0 0 1-4 0M12 8V6"/>',
+  sleeve:'<rect x="9" y="3" width="6" height="18" rx="3"/><path d="M9 8h6"/>',
+  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  alert:'<path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17v.5"/>',
+};
+function ico(n, s=18, w=1.8){ return `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${I[n]||''}</svg>`; }
+
+/* desenhinhos dos formatos (48px) */
+const FMT_SVG = {
+  dobravel:'<path d="M32 16c9 0 17 5 17 12H15c0-7 8-12 17-12Z"/><path d="M32 28v14"/><rect x="28" y="42" width="8" height="8" rx="2"/><path d="M32 13v3"/>',
+  longo:'<path d="M32 8c11 0 21 6 21 15H11c0-9 10-15 21-15Z"/><path d="M32 23v26a5 5 0 0 1-10 0"/><path d="M32 5v3"/>',
+  golfe:'<path d="M32 12c14 0 25 6 25 12H7c0-6 11-12 25-12Z"/><path d="M32 24v26"/><rect x="29" y="50" width="6" height="9" rx="2.5"/><path d="M32 9v3"/>',
+  sombrinha:'<path d="M32 15c8 0 15 4 15 10H17c0-6 7-10 15-10Z"/><path d="M17 25q3.75 3.5 7.5 0t7.5 0 7.5 0 7.5 0"/><path d="M32 27v20a3.5 3.5 0 0 0 7 0M32 12v3"/>',
+  cupula:'<path d="M13 40v-8c0-12 8.5-20 19-20s19 8 19 20v8"/><path d="M32 40v12a4 4 0 0 1-8 0M32 12V9"/><path d="M13 40h38" stroke-dasharray="3 4"/>',
+};
+function fmtSvg(id, s=48){ return `<svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${FMT_SVG[id]||''}</svg>`; }
+
+/* ================= constantes ================= */
+const LS_KEY = 'gcm_state_v1';
+const RAIN_MM = 1.0;
+const FORMATOS = [
+  {id:'dobravel',  label:'Dobrável'},
+  {id:'longo',     label:'Cabo longo'},
+  {id:'golfe',     label:'Golfe'},
+  {id:'sombrinha', label:'Sombrinha'},
+  {id:'cupula',    label:'Cúpula'},
+];
+const RECURSOS = [
+  {id:'manual',    label:'Manual',          ic:'hand'},
+  {id:'auto',      label:'Automático',      ic:'bolt'},
+  {id:'autoaf',    label:'Abre-e-fecha',    ic:'updown'},
+  {id:'invertido', label:'Invertido',       ic:'cup'},
+  {id:'antivento', label:'Antivento',       ic:'wind'},
+  {id:'capa',      label:'Com capa',        ic:'sleeve'},
+  {id:'led',       label:'LED',             ic:'bulb'},
+];
+const ORIGINS = [
+  {id:'comprado', label:'Comprei', ic:'coin'},
+  {id:'ganhado',  label:'Ganhei',  ic:'star'},
+  {id:'achado',   label:'Achei',   ic:'pin'},
+  {id:'brinde',   label:'Brinde',  ic:'doc'},
+  {id:'outro',    label:'Outro',   ic:'plus'},
+];
+const LOSS_REASONS = ['Perdi por aí','Esqueci no ônibus/uber','Emprestei e nunca voltou','Quebrou no vento','Desgastou de velhinho','Sumiu misteriosamente','Doei / dei de presente','Vendi 💰','Outro'];
+const RANKS = [
+  {min:3000, name:'MITO',        e:'🐉'},
+  {min:1500, name:'Lendário',    e:'🏆'},
+  {min:700,  name:'Guardião',    e:'⚔️'},
+  {min:300,  name:'Veterano',    e:'🛡️'},
+  {min:100,  name:'Companheiro', e:'☂️'},
+  {min:0,    name:'Novato',      e:'🌱'},
+];
+
+/* ================= estado ================= */
+let state = load();
+function load(){
+  let s = null;
+  try{ s = JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){}
+  if(!s || !s.umbrellas) s = { user:null, location:null, home:null, rainLog:{}, lastSync:null, umbrellas:[] };
+  if(s.user === undefined) s.user = null;
+  if(s.home === undefined) s.home = null;
+  for(const u of s.umbrellas){        // migração v0.1 → v0.2
+    if(!u.formato){
+      const t = u.type || '';
+      u.formato = t==='De golfe' ? 'golfe' : t==='Sombrinha' ? 'sombrinha' : t==='Transparente' ? 'cupula' : 'dobravel';
+      u.recursos = t==='Automático' ? ['auto'] : t==='Invertido' ? ['invertido'] : ['manual'];
+    }
+    u.recursos = u.recursos || [];
+    u.trips = u.trips || [];
+    u.locHistory = u.locHistory || [];
+    u.loanHistory = u.loanHistory || [];
+    if(u.loan === undefined) u.loan = null;
+    if(u.lost === undefined) u.lost = null;
+    u.recoveries = u.recoveries || [];
+    if(u.originStory === undefined) u.originStory = '';
+    u.retiredPhotos = u.retiredPhotos || [];
+  }
+  return s;
+}
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  catch(e){ toast('⚠️ Memória cheia — exporte um backup e remova fotos antigas'); }
+}
+
+/* ================= util ================= */
+const $ = id => document.getElementById(id);
+function todayStr(){ return dstr(new Date()); }
+function dstr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseD(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function addDays(s,n){ const d=parseD(s); d.setDate(d.getDate()+n); return dstr(d); }
+function daysBetween(a,b){ return Math.round((parseD(b)-parseD(a))/86400000); }
+function fmtBR(s){ if(!s) return '—'; const [y,m,d]=s.split('-'); return d+'/'+m+'/'+y; }
+function money(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtNum(n){ return Math.round(n||0).toLocaleString('pt-BR'); }
+function fmtMm(n){ return Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:1, maximumFractionDigits:1}); }
+function esc(t){ return String(t??'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600); }
+function fmtDur(days){
+  if(days<1) return 'hoje';
+  if(days<60) return days+' dia'+(days>1?'s':'');
+  if(days<730) return Math.round(days/30.44)+' meses';
+  return (days/365.25).toFixed(1).replace('.',',')+' anos';
+}
+function haversine(a,b){
+  const R=6371, rad=x=>x*Math.PI/180;
+  const dLat=rad(b.lat-a.lat), dLon=rad(b.lon-a.lon);
+  const h=Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function fmtKm(km){ return km>=100 ? Math.round(km).toLocaleString('pt-BR')+' km' : km.toFixed(1).replace('.',',')+' km'; }
+function geoLabel(lat,lon){
+  return fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=pt`)
+    .then(r=>r.ok?r.json():null)
+    .then(j=> j ? [j.locality||j.city, j.principalSubdivision].filter(Boolean).join(' - ') || (lat.toFixed(3)+', '+lon.toFixed(3)) : (lat.toFixed(3)+', '+lon.toFixed(3)))
+    .catch(()=> lat.toFixed(3)+', '+lon.toFixed(3));
+}
+function getGPS(){
+  return new Promise((res,rej)=>{
+    if(!navigator.geolocation) return rej('GPS não disponível');
+    navigator.geolocation.getCurrentPosition(
+      p=>res({lat:+p.coords.latitude.toFixed(5), lon:+p.coords.longitude.toFixed(5)}),
+      ()=>rej('GPS negado ou indisponível'), {timeout:12000, enableHighAccuracy:true});
+  });
+}
+
+/* ================= pluviometria (Open-Meteo) ================= */
+async function syncRain(force){
+  if(!state.location) return;
+  const today = todayStr();
+  let from = today;
+  for(const u of state.umbrellas) if(u.acquiredDate < from) from = u.acquiredDate;
+  const cap = addDays(today, -365*5);
+  if(from < cap) from = cap;
+  let fetchFrom = from;
+  if(!force && state.lastSync){
+    const recheck = addDays(today,-8);
+    let d = from;
+    while(d < recheck && state.rainLog[d] !== undefined) d = addDays(d,1);
+    fetchFrom = d;
+  }
+  if(fetchFrom > today) return;
+  const {lat,lon} = state.location;
+  const daysNeeded = daysBetween(fetchFrom, today);
+  const daily = url => fetch(url, {signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined})
+                        .then(r => r.ok ? r.json() : Promise.reject(0));
+  let got = 0;
+  const commit = n => {   // grava e já atualiza a tela a cada resposta que chegar
+    if(n > 0){
+      got += n;
+      state.lastSync = new Date().toISOString();
+      save(); renderHeader(); renderHome(); renderRank();
+    }
+  };
+  const ingestOM = j => {  // formato Open-Meteo
+    const dates = j?.daily?.time || [], mm = j?.daily?.precipitation_sum || [];
+    let n = 0;
+    for(let i=0;i<dates.length;i++){
+      if(dates[i] > today) continue;
+      if(mm[i] === null || mm[i] === undefined) continue;
+      state.rainLog[dates[i]] = mm[i]; n++;
+    }
+    return n;
+  };
+  /* fonte principal: NASA POWER — domínio público, liberada p/ uso comercial.
+     Dados fecham com ~4 dias de atraso (-999 = ainda não disponível). */
+  let powerOK = false;
+  try{
+    const j = await daily(`https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR&community=AG&longitude=${lon}&latitude=${lat}&start=${fetchFrom.replace(/-/g,'')}&end=${today.replace(/-/g,'')}&format=JSON`);
+    const d = j?.properties?.parameter?.PRECTOTCORR || {};
+    let n = 0;
+    for(const k in d){
+      const v = d[k];
+      if(v === null || v < 0) continue;
+      const date = k.slice(0,4)+'-'+k.slice(4,6)+'-'+k.slice(6,8);
+      if(date > today) continue;
+      state.rainLog[date] = v; n++;
+    }
+    if(n > 0) powerOK = true;
+    commit(n);
+  }catch(e){}
+  if(powerOK){
+    // complementa só os últimos dias que a NASA ainda não fechou
+    let need = false;
+    for(let d=addDays(today,-7); d<=today; d=addDays(d,1)) if(state.rainLog[d]===undefined){ need=true; break; }
+    if(need){
+      try{ commit(ingestOM(await daily(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum&past_days=8&forecast_days=1&timezone=auto`))); }catch(e){}
+    }
+  }else{
+    // NASA fora do ar → Open-Meteo cobre tudo (previsão + arquivo histórico)
+    const reqs = [daily(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum&past_days=${Math.min(Math.max(daysNeeded,1),92)}&forecast_days=1&timezone=auto`).then(j=>{commit(ingestOM(j)); return j;})];
+    if(daysNeeded > 90){
+      reqs.push(daily(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${fetchFrom}&end_date=${addDays(today,-6)}&daily=precipitation_sum&timezone=auto`).then(j=>{commit(ingestOM(j)); return j;}));
+    }
+    const results = await Promise.allSettled(reqs);
+    if(results[0].status !== 'fulfilled'){
+      try{
+        const from90 = daysNeeded > 90 ? addDays(today,-90) : fetchFrom;
+        commit(ingestOM(await daily(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${from90}&end_date=${today}&daily=precipitation_sum&timezone=auto`)));
+      }catch(e){}
+    }
+  }
+  if(got === 0) toast('Sem conexão com os serviços de chuva — usando dados já salvos');
+}
+
+/* ================= estatísticas & pontos ================= */
+function inLostPeriod(u, d){
+  for(const r of (u.recoveries||[])) if(d >= r.lostDate && d < r.foundDate) return true;
+  return false;
+}
+function umbrellaStats(u){
+  let end = u.retiredDate || todayStr();
+  if(u.lost && u.lost.date < end) end = u.lost.date;   // perdido → contadores congelam
+  const start = u.acquiredDate;
+  let lostDays = 0;
+  for(const r of (u.recoveries||[])){
+    const a = r.lostDate > start ? r.lostDate : start;
+    const b = r.foundDate < end ? r.foundDate : end;
+    if(b > a) lostDays += daysBetween(a,b);
+  }
+  const ownDays = Math.max(Math.max(daysBetween(start,end),0)+1 - lostDays, 1);
+  let rains=0, mmTotal=0, dry=0, maxDry=0, lastRain=null;
+  for(let d=start; d<=end; d=addDays(d,1)){
+    if(inLostPeriod(u,d)) continue;                    // dias sumido não contam
+    const mm = state.rainLog[d];
+    if(mm !== undefined && mm >= RAIN_MM){ rains++; mmTotal+=mm; if(dry>maxDry)maxDry=dry; dry=0; lastRain=d; }
+    else dry++;
+  }
+  if(dry>maxDry) maxDry=dry;
+  const lg = u.legacy || {};
+  const trips = u.trips || [];
+  const maxDist = trips.reduce((m,t)=>Math.max(m, t.distKm||0), 0);
+  const kmTotal = trips.reduce((a,t)=>a+(t.distKm||0), 0);
+  const totRains = rains + (lg.rains||0);
+  const totMm = mmTotal + (lg.mm||0);
+  const paid = u.origin==='comprado' && u.price>0;
+  return {
+    ownDays,
+    lifeDays: ownDays + (lg.days||0),
+    rains: totRains,
+    mmTotal: totMm,
+    maxDry: Math.max(maxDry, lg.maxDry||0),
+    sinceLastRain: lastRain ? daysBetween(lastRain, end) : ownDays,
+    trips: trips.length, maxDist, kmTotal,
+    costPerRain: (paid && totRains>0) ? u.price/totRains : null,
+    costPerMm:   (paid && totMm>0)    ? u.price/totMm    : null,
+    costPerDay:  paid                 ? u.price/ownDays  : null,
+  };
+}
+function calcPoints(u, s){
+  s = s || umbrellaStats(u);
+  let p = 0;
+  p += s.rains*10 + Math.round(s.mmTotal*0.2);   // chuvas + mm
+  p += s.lifeDays;                                // companhia
+  for(const t of (u.trips||[])) p += 30 + Math.min(Math.round((t.distKm||0)*0.5), 500); // viagens
+  p += (u.loanHistory||[]).filter(l=>l.returned).length*25;  // empréstimos que voltaram
+  p += (u.recoveries||[]).length*50;              // reencontros de perdidos 🎉
+  p += (u.photos||[]).length*5;                   // capricho
+  if(u.originStory) p += 10;
+  if(u.typeExtra) p += 5;
+  return p;
+}
+function rankOf(pts){ return RANKS.find(r=>pts>=r.min); }
+function nextRank(pts){ return [...RANKS].reverse().find(r=>r.min>pts) || null; }
+function badge(u, s){
+  const pts = calcPoints(u, s), r = rankOf(pts);
+  return `<span class="rankbadge" title="${fmtNum(pts)} pontos">${r.e} ${r.name}</span>`;
+}
+
+/* ================= header ================= */
+function renderHeader(){
+  $('hdrUser').innerHTML = state.user
+    ? (state.user.photo ? `<img class="avatar" src="${state.user.photo}">` : ico('user',13))+' '+esc(state.user.name.split(' ')[0])
+    : '';
+  $('hdrLoc').innerHTML = state.location ? ico('pin',13)+' '+esc(state.location.name) : ico('pin',13)+' defina em Ajustes';
+  $('hdrSync').innerHTML = state.lastSync ? ico('check',13)+' pluviometria ok' : '';
+}
+
+/* ================= aba: meus guarda-chuvas ================= */
+function renderHome(){
+  $('tokenWrap').innerHTML = '';
+  const box = $('homeList');
+  const us = [...state.umbrellas].sort((a,b)=> (a.retiredDate?1:0)-(b.retiredDate?1:0) || b.acquiredDate.localeCompare(a.acquiredDate));
+  if(!us.length){
+    box.innerHTML = `<div class="empty"><span class="big">${ico('umbrella',48,1.4)}</span>Nenhum guarda-chuva por aqui ainda.<br>Toque em <b>Novo</b> para adotar o primeiro!</div>`;
+    return;
+  }
+  box.innerHTML = us.map(u=>{
+    const s = umbrellaStats(u);
+    const origin = ORIGINS.find(o=>o.id===u.origin) || ORIGINS[4];
+    const fmt = FORMATOS.find(f=>f.id===u.formato);
+    const priceTxt = u.origin==='comprado' && u.price>0 ? money(u.price) : origin.label.toLowerCase();
+    const photo = (u.photos && u.photos[0]) ? `<img src="${u.photos[0]}" alt="">` : ico('umbrella',30,1.5);
+    const lastLoc = u.locHistory[u.locHistory.length-1];
+    const recChips = u.recursos.map(rid=>{ const r=RECURSOS.find(x=>x.id===rid); return r?`<span class="chip">${ico(r.ic,11)} ${r.label}</span>`:''; }).join('');
+    const locbar = (u.retiredDate || u.lost) ? '' :
+      `<div class="abar">
+         <button class="c-blue" onclick="registerLoc('${u.id}')">${ico('pin',18)}Deixei ele aqui</button>
+         <button class="c-blue" onclick="gotoLastLoc('${u.id}')">${ico('map',18)}Visto por último
+           <span class="sub">${lastLoc ? esc(lastLoc.label.slice(0,24))+' · '+lastLoc.when.slice(0,5) : 'nenhum registro ainda'}</span></button>
+       </div>`;
+    const abar = u.retiredDate ? '' : u.lost
+      ? `<div class="abar">
+           <button class="c-green" onclick="openFound('${u.id}')">${ico('star',18)}Encontrei!</button>
+           <button class="c-red" onclick="openRetire('${u.id}')">${ico('tomb',18)}Aposentar</button>
+         </div>`
+      : `<div class="abar">
+           ${u.loan
+             ? `<button class="c-green" onclick="returnLoan('${u.id}')">${ico('check',18)}Voltou!</button>`
+             : `<button class="c-gold" onclick="openLoan('${u.id}')">${ico('swap',18)}Emprestar</button>`}
+           <button class="c-red" onclick="openLost('${u.id}')">${ico('alert',18)}Perdi!</button>
+           <button class="c-mut" onclick="openRetire('${u.id}')">${ico('tomb',18)}Aposentar</button>
+         </div>`;
+    return `<div class="ucard ${u.retiredDate?'retired':''}">
+      <div class="uclick" onclick="openDetail('${u.id}')">
+        <div class="uhead">
+          <div class="uphoto">${photo}</div>
+          <div style="flex:1;min-width:0">
+            <div class="uname">${esc(u.name)} ${badge(u,s)}</div>
+            <div class="usince">${ico('cal',11)} com você desde ${fmtBR(u.acquiredDate)}</div>
+          </div>
+        </div>
+        <div class="utags utrow">
+          ${fmt?`<span class="chip">${fmtSvg(u.formato,13)} ${fmt.label}</span>`:''}
+          ${recChips}
+          <span class="chip">${ico(origin.ic,11)} ${esc(priceTxt)}</span>
+          ${u.loan ? `<span class="chip gold">${ico('swap',11)} com ${esc(u.loan.to)}</span>` : ''}
+          ${u.lost && !u.retiredDate ? `<span class="chip red">${ico('alert',11)} perdido 😱</span>` : ''}
+          ${u.retiredDate ? `<span class="chip red">${ico('tomb',11)} ${u.retiredReason==='Vendi 💰'?'vendido':'aposentado'}</span>` : ''}
+        </div>
+        <div class="ustats">
+          <div class="stat"><div class="v">${fmtNum(s.rains)}</div><div class="l">${ico('rain',11)} chuvas</div></div>
+          <div class="stat"><div class="v">${fmtNum(s.mmTotal)}</div><div class="l">${ico('drop',11)} mm</div></div>
+          <div class="stat"><div class="v">${fmtDur(s.lifeDays)}</div><div class="l">${ico('cal',11)} de vida</div></div>
+          <div class="stat"><div class="v">${s.maxDry}d</div><div class="l">${ico('sun',11)} maior seca</div></div>
+        </div>
+        ${u.lost && !u.retiredDate
+          ? `<div class="lostbox">${ico('alert',13)} Perdido desde ${fmtBR(u.lost.date)} (${daysBetween(u.lost.date,todayStr())} dia(s)). ${lastLoc
+              ? `Última localização: <a href="https://maps.google.com/?q=${lastLoc.lat},${lastLoc.lon}" target="_blank" onclick="event.stopPropagation()">${esc(lastLoc.label)}</a>, registrada em ${lastLoc.when}.`
+              : 'Nenhum local registrado — boa sorte na busca!'}</div>`
+          : ''}
+        ${u.retiredDate ? `<div class="why">${ico('tomb',13)} ${fmtBR(u.retiredDate)} — ${esc(u.retiredReason||'')}${u.retiredNote?': '+esc(u.retiredNote):''}</div>` : ''}
+      </div>
+      ${locbar}
+      ${abar}
+    </div>`;
+  }).join('');
+}
+
+/* ============ "deixei ele aqui" / visto por último ============ */
+function gotoLastLoc(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  const l = u.locHistory[u.locHistory.length-1];
+  if(!l){ toast('Nenhum local registrado ainda — use "Deixei ele aqui" 📍'); return; }
+  window.open(`https://maps.google.com/?q=${l.lat},${l.lon}`, '_blank');
+}
+async function registerLoc(id){
+  closeModal();
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  toast('Registrando posição...');
+  try{
+    const pos = await getGPS();
+    const label = await geoLabel(pos.lat, pos.lon);
+    const now = new Date();
+    u.locHistory.push({ts: now.toISOString(), when: fmtBR(dstr(now))+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'), lat: pos.lat, lon: pos.lon, label});
+    if(u.locHistory.length > 30) u.locHistory = u.locHistory.slice(-30);
+    save(); renderHome();
+    toast('📍 '+u.name+' visto em: '+label);
+  }catch(err){ toast(String(err)); }
+}
+
+/* ================= detalhe ================= */
+function openDetail(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  const s = umbrellaStats(u);
+  const pts = calcPoints(u, s), r = rankOf(pts), nx = nextRank(pts);
+  const origin = ORIGINS.find(o=>o.id===u.origin) || ORIGINS[4];
+  const fmt = FORMATOS.find(f=>f.id===u.formato);
+  const gal = (u.photos||[]).filter(Boolean).map(p=>`<img src="${p}">`).join('');
+  const recTxt = u.recursos.map(rid=>RECURSOS.find(x=>x.id===rid)?.label).filter(Boolean).join(', ');
+  const locs = [...u.locHistory].reverse().slice(0,5).map(l=>
+    `<div class="mini">${ico('pin',14)}<div class="mm">${esc(l.label)} <span class="md">· ${l.when}</span></div><a href="https://maps.google.com/?q=${l.lat},${l.lon}" target="_blank">mapa</a></div>`).join('');
+  const trips = [...u.trips].reverse().map(t=>
+    `<div class="mini">${t.photos&&t.photos[0]?`<img src="${t.photos[0]}">`:ico('case',16)}<div class="mm"><b>${esc(t.label)}</b> <span class="md">· ${fmtBR(t.date)} · ${fmtKm(t.distKm||0)} de casa</span>${t.note?`<div class="md">${esc(t.note)}</div>`:''}</div><a href="#" onclick="delTrip('${u.id}','${t.id}');return false" style="color:var(--warn)">excluir</a></div>`).join('');
+  const recs = [...u.recoveries].reverse().map(r=>
+    `<div class="mini">${ico('star',14)}<div class="mm">Sumiu ${fmtBR(r.lostDate)} → voltou ${fmtBR(r.foundDate)} <span class="md">(${daysBetween(r.lostDate,r.foundDate)} dia(s) fora)</span>${r.note?`<div class="md">${esc(r.note)}</div>`:''}</div><span class="md" style="color:var(--ok);font-weight:700">+50</span></div>`).join('');
+  const loans = [...u.loanHistory].reverse().map(l=>
+    `<div class="mini">${ico('swap',14)}<div class="mm">${esc(l.to)} <span class="md">· ${fmtBR(l.date)} · ${esc(l.reason||'')}</span></div><span class="md">${l.returned?'voltou '+fmtBR(l.returned):'não voltou'}</span></div>`).join('')
+    + (u.loan ? `<div class="mini">${ico('swap',14)}<div class="mm">${esc(u.loan.to)} <span class="md">· ${fmtBR(u.loan.date)} · ${esc(u.loan.reason||'')}</span></div><span class="md" style="color:var(--loan);font-weight:700">emprestado</span></div>` : '');
+  const retGal = (u.retiredPhotos||[]).filter(Boolean).map(p=>`<img src="${p}">`).join('');
+  $('sheet').innerHTML = `
+    <h3>${ico('umbrella',18)} ${esc(u.name)} ${badge(u,s)}</h3>
+    <div class="utags" style="margin-top:6px">
+      ${fmt?`<span class="chip">${fmtSvg(u.formato,13)} ${fmt.label}</span>`:''}
+      ${u.typeExtra?`<span class="chip">${ico('star',11)} ${esc(u.typeExtra)}</span>`:''}
+      <span class="chip">${ico(origin.ic,11)} ${origin.label}${u.origin==='comprado'&&u.price>0?' · '+money(u.price):''}</span>
+    </div>
+    ${gal?`<div class="gal">${gal}</div>`:''}
+    <div class="sec">
+      <h4>${ico('star',14)} ${fmtNum(pts)} pontos — patente ${r.e} ${r.name}</h4>
+      ${nx?`<div class="progress"><div style="width:${Math.min(100,Math.round(pts/nx.min*100))}%"></div></div><div class="hint">faltam ${fmtNum(nx.min-pts)} pts para ${nx.e} ${nx.name} · <a href="#" onclick="openPointsBreakdown('${u.id}');return false" style="color:var(--brand2);font-weight:600">extrato</a> · <a href="#" onclick="openPointsInfo();return false" style="color:var(--brand2);font-weight:600">regras</a></div>`:`<div class="hint">patente máxima alcançada! 🐉 · <a href="#" onclick="openPointsBreakdown('${u.id}');return false" style="color:var(--brand2);font-weight:600">extrato</a> · <a href="#" onclick="openPointsInfo();return false" style="color:var(--brand2);font-weight:600">regras</a></div>`}
+    </div>
+    <table class="detail-table">
+      <tr><td>Com você desde</td><td>${fmtBR(u.acquiredDate)} (${fmtNum(s.ownDays)} dias)</td></tr>
+      ${u.legacy?`<tr><td>Vida total (c/ dono anterior)</td><td>${fmtDur(s.lifeDays)}</td></tr>`:''}
+      ${recTxt?`<tr><td>Recursos</td><td>${esc(recTxt)}</td></tr>`:''}
+      <tr><td>Chuvas enfrentadas</td><td>${fmtNum(s.rains)}</td></tr>
+      <tr><td>Precipitação acumulada</td><td>${fmtMm(s.mmTotal)} mm</td></tr>
+      <tr><td>Maior período sem uso</td><td>${fmtNum(s.maxDry)} dias</td></tr>
+      <tr><td>Viagens</td><td>${s.trips}${s.maxDist?' · máx '+fmtKm(s.maxDist)+' de casa':''}</td></tr>
+      ${u.retiredDate?`<tr><td>${u.retiredReason==='Vendi 💰'?'Vendido':'Aposentado'} em</td><td>${fmtBR(u.retiredDate)}</td></tr><tr><td>Motivo</td><td>${esc(u.retiredReason||'—')}${u.saleValue?' · '+money(u.saleValue)+(u.saleTo?' p/ '+esc(u.saleTo):''):''}</td></tr>`:''}
+    </table>
+    ${s.costPerDay!==null?`<div class="sec"><h4>${ico('coin',14)} Custo-benefício (pagou ${money(u.price)})</h4>
+      <div class="cb3">
+        <div><b>${s.costPerRain!==null?money(s.costPerRain):'—'}</b><span>por chuva</span></div>
+        <div><b>${s.costPerMm!==null?money(s.costPerMm):'—'}</b><span>por mm</span></div>
+        <div><b>${money(s.costPerDay)}</b><span>por dia</span></div>
+      </div>
+      <div class="hint">quanto mais ele vive, mais barato fica 😄</div></div>`:''}
+    ${u.originStory?`<div class="sec"><h4>${ico('book',14)} Como chegou</h4><p class="hint" style="margin:0">${esc(u.originStory)}</p></div>`:''}
+    ${locs?`<div class="sec"><h4>${ico('pin',14)} Últimos locais</h4>${locs}</div>`:''}
+    <div class="sec"><h4>${ico('case',14)} Viagens</h4>${trips||'<p class="hint" style="margin:0">Nenhuma viagem registrada ainda.</p>'}
+      ${!u.retiredDate?`<button class="btn small ghost" style="margin-top:8px" onclick="openTrip('${u.id}')">${ico('plus',13)} Registrar viagem</button>`:''}
+    </div>
+    ${u.lost?`<div class="lostbox" style="margin:14px 0 0">${ico('alert',13)} Perdido desde ${fmtBR(u.lost.date)} — contadores congelados. Força na busca! 🔍</div>`:''}
+    ${recs?`<div class="sec"><h4>${ico('star',14)} Reencontros</h4>${recs}</div>`:''}
+    ${loans?`<div class="sec"><h4>${ico('swap',14)} Empréstimos</h4>${loans}</div>`:''}
+    ${retGal?`<div class="sec"><h4>${ico('camera',14)} Últimas lembranças</h4><div class="gal">${retGal}</div></div>`:''}
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" onclick="openReport('${u.id}')">${ico('doc',14)} Relatório PDF</button>
+      ${u.retiredReason==='Vendi 💰'?`<button class="btn gold" onclick="exportTransfer('${u.id}')">${ico('share',14)} Enviar p/ comprador</button>`:''}
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn ghost" onclick="closeModal()">Fechar</button>
+      <button class="btn danger" onclick="delUmbrella('${u.id}')">Excluir registro</button>
+    </div>`;
+  openModal();
+}
+function delUmbrella(id){
+  if(!confirm('Excluir este guarda-chuva e todo o histórico dele?')) return;
+  state.umbrellas = state.umbrellas.filter(x=>x.id!==id);
+  save(); closeModal(); renderHome(); renderRank(); toast('Registro excluído');
+}
+function delTrip(uid_, tid){
+  const u = state.umbrellas.find(x=>x.id===uid_); if(!u) return;
+  if(!confirm('Excluir esta viagem?')) return;
+  u.trips = u.trips.filter(t=>t.id!==tid);
+  save(); openDetail(uid_); renderRank();
+}
+
+/* ================= fotos (picker genérico) ================= */
+const PH = { new:[null,null,null], retire:[null,null,null], trip:[null,null,null], user:[null] };
+let phCtx = {arr:'new', i:0};
+function phRender(arr){
+  if(arr==='user'){
+    const p = PH.user[0];
+    document.querySelectorAll('.ph-user').forEach(el=>{
+      el.innerHTML = p
+        ? `<div class="pslot round" onclick="phClear('user',0)"><img src="${p}"><span class="x">✕</span></div>`
+        : `<div class="pslot round" onclick="phTake('user',0)">${ico('camera',24)}</div>`;
+    });
+    return;
+  }
+  const el = $('ph-'+arr); if(!el) return;
+  el.innerHTML = PH[arr].map((p,i)=> p
+    ? `<div class="pslot" onclick="phClear('${arr}',${i})"><img src="${p}"><span class="x">✕</span></div>`
+    : `<div class="pslot" onclick="phTake('${arr}',${i})">${ico('camera',22)}</div>`).join('');
+}
+function phTake(arr,i){ phCtx={arr,i}; $('photoInput').value=''; $('photoInput').click(); }
+function phClear(arr,i){ PH[arr][i]=null; phRender(arr); }
+$('photoInput').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const img = new Image();
+  img.onload = ()=>{
+    const MAX=640, sc=Math.min(1, MAX/Math.max(img.width,img.height));
+    const c=document.createElement('canvas'); c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    PH[phCtx.arr][phCtx.i]=c.toDataURL('image/jpeg',.6);
+    URL.revokeObjectURL(img.src); phRender(phCtx.arr);
+  };
+  img.src = URL.createObjectURL(f);
+});
+
+/* ================= aba: novo ================= */
+let selFormato = 'dobravel', selRecursos = ['manual'], selOrigin = 'comprado';
+function renderNewForm(){
+  $('newTitle').innerHTML = ico('umbrella',17)+' Cadastrar guarda-chuva';
+  $('btnSave').innerHTML = ico('umbrella',16)+' Adotar guarda-chuva';
+  $('fFormatos').innerHTML = FORMATOS.map(f=>
+    `<div class="fmt ${f.id===selFormato?'on':''}" onclick="pickFormato('${f.id}')">${fmtSvg(f.id,44)}<div class="fl">${f.label}</div></div>`).join('');
+  $('fRecursos').innerHTML = RECURSOS.map(r=>
+    `<button class="${selRecursos.includes(r.id)?'on':''}" onclick="toggleRecurso('${r.id}')">${ico(r.ic,14)} ${r.label}</button>`).join('');
+  $('fOriginSeg').innerHTML = ORIGINS.map(o=>
+    `<button class="${o.id===selOrigin?'on':''}" onclick="pickOrigin('${o.id}')">${ico(o.ic,14)} ${o.label}</button>`).join('');
+  $('fPriceWrap').hidden = selOrigin!=='comprado';
+  phRender('new');
+  if(!$('fDate').value) $('fDate').value = todayStr();
+  $('fDate').max = todayStr();
+}
+function pickFormato(f){ selFormato=f; renderNewForm(); }
+function toggleRecurso(r){
+  selRecursos = selRecursos.includes(r) ? selRecursos.filter(x=>x!==r) : [...selRecursos, r];
+  renderNewForm();
+}
+function pickOrigin(o){ selOrigin=o; renderNewForm(); }
+$('btnSave').addEventListener('click', ()=>{
+  const name = $('fName').value.trim();
+  if(!name){ toast('Dá um apelido pra ele! 😄'); $('fName').focus(); return; }
+  const u = {
+    id: uid(), name, formato: selFormato, recursos: [...selRecursos], typeExtra: $('fTypeExtra').value.trim(),
+    origin: selOrigin, price: selOrigin==='comprado' ? (parseFloat($('fPrice').value)||0) : 0,
+    originStory: $('fOriginStory').value.trim(),
+    acquiredDate: $('fDate').value || todayStr(),
+    photos: PH.new.filter(Boolean),
+    loan: null, loanHistory: [], locHistory: [], trips: [], lost: null, recoveries: [],
+    retiredDate: null, retiredReason: null, retiredNote: null, retiredPhotos: [],
+    legacy: null, createdAt: new Date().toISOString()
+  };
+  state.umbrellas.push(u); save();
+  PH.new=[null,null,null];
+  $('fName').value=''; $('fTypeExtra').value=''; $('fPrice').value=''; $('fOriginStory').value=''; $('fDate').value='';
+  renderNewForm(); showTab('home'); renderHome(); renderRank();
+  toast('☂️ '+name+' adotado com sucesso!');
+  syncRain(true);
+});
+
+/* ================= empréstimo ================= */
+function openLoan(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  $('sheet').innerHTML = `
+    <h3>${ico('swap',18)} Emprestar "${esc(u.name)}"</h3>
+    <p class="hint">Anota aí pra não virar mais um "emprestei e nunca voltou"...</p>
+    <label>Para quem?</label>
+    <input type="text" id="lTo" placeholder="Nome de quem levou">
+    <label>Quando?</label>
+    <input type="date" id="lDate" value="${todayStr()}" max="${todayStr()}">
+    <label>Motivo</label>
+    <input type="text" id="lReason" placeholder="Ex.: pegou chuva na saída do trabalho">
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn gold" onclick="doLoan('${u.id}')">${ico('swap',14)} Emprestar</button>
+    </div>`;
+  openModal();
+}
+function doLoan(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  const to = $('lTo').value.trim();
+  if(!to){ toast('Diz pra quem emprestou!'); return; }
+  u.loan = {to, date: $('lDate').value||todayStr(), reason: $('lReason').value.trim()};
+  save(); closeModal(); renderHome();
+  toast('🤝 Emprestado para '+to+'. Boa sorte!');
+}
+function returnLoan(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u || !u.loan) return;
+  u.loanHistory.push({...u.loan, returned: todayStr()});
+  const to = u.loan.to; u.loan = null;
+  save(); renderHome(); renderRank();
+  toast('🎉 '+u.name+' voltou do empréstimo com '+to+'! +25 pts');
+}
+
+/* ================= perdido / reencontro ================= */
+function openLost(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  const lastLoc = u.locHistory[u.locHistory.length-1];
+  const daysAgo = lastLoc ? daysBetween(lastLoc.ts.slice(0,10), todayStr()) : null;
+  $('sheet').innerHTML = `
+    <h3>${ico('alert',18)} Perdeu o "${esc(u.name)}"? 😱</h3>
+    <p class="hint">Calma, respira. É verdade mesmo? Antes de confirmar, olha onde ele foi visto pela última vez:</p>
+    ${lastLoc
+      ? `<div class="lostbox" style="margin:12px 0">${ico('pin',13)} <b>${esc(lastLoc.label)}</b> — registrado ${daysAgo===0?'hoje':daysAgo===1?'ontem':'há '+daysAgo+' dias'} (${lastLoc.when})<br>
+         <a href="https://maps.google.com/?q=${lastLoc.lat},${lastLoc.lon}" target="_blank">Abrir no mapa e ir buscar 🔍</a></div>`
+      : `<div class="lostbox" style="margin:12px 0">${ico('pin',13)} Nenhum local registrado para ele. Da próxima vez use o botão "Deixei ele aqui"!</div>`}
+    <p class="hint">Ao confirmar, os contadores dele <b>congelam</b> até você encontrá-lo. Se aparecer, use o botão "Encontrei!" (+50 pts de reencontro 🎉).</p>
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" onclick="closeModal()">Ainda tenho esperança</button>
+      <button class="btn danger" onclick="doLost('${u.id}')">${ico('alert',14)} É verdade, perdi</button>
+    </div>`;
+  openModal();
+}
+function doLost(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  u.lost = {date: todayStr()};
+  save(); closeModal(); renderHome(); renderRank();
+  toast('😱 Contadores congelados. Boa sorte na busca!');
+}
+function openFound(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u || !u.lost) return;
+  $('sheet').innerHTML = `
+    <h3>${ico('star',18)} Encontrou o "${esc(u.name)}"! 🎉</h3>
+    <p class="hint">Que alívio! Ele ficou sumido por ${daysBetween(u.lost.date, todayStr())} dia(s). Conta como foi o reencontro:</p>
+    <label>A história do reencontro (opcional)</label>
+    <textarea id="foundNote" placeholder="Ex.: estava no achados e perdidos da rodoviária, coberto de glória..."></textarea>
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn green" onclick="doFound('${u.id}')">${ico('check',14)} Voltou pra casa! +50 pts</button>
+    </div>`;
+  openModal();
+}
+function doFound(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u || !u.lost) return;
+  u.recoveries.push({lostDate: u.lost.date, foundDate: todayStr(), note: $('foundNote').value.trim()});
+  u.lost = null;
+  save(); closeModal(); renderHome(); renderRank();
+  toast('🎉 '+u.name+' voltou pra casa! +50 pts de reencontro');
+}
+
+/* ================= viagens ================= */
+let tripPlace = null;
+function openTrip(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  if(!state.home){ toast('Marque sua casa em Ajustes primeiro 🏠'); closeModal(); showTab('cfg'); return; }
+  tripPlace = null; PH.trip=[null,null,null];
+  $('sheet').innerHTML = `
+    <h3>${ico('case',18)} Viagem do "${esc(u.name)}"</h3>
+    <p class="hint">Onde ele te acompanhou? A distância é calculada a partir da sua casa.</p>
+    <label>Onde foi?</label>
+    <button class="btn full ghost" onclick="tripGPS()">${ico('pin',14)} Estou lá agora (usar GPS)</button>
+    <div class="georow">
+      <input type="text" id="tQuery" placeholder="ou busque a cidade...">
+      <button class="btn ghost" onclick="tripSearch()">Buscar</button>
+    </div>
+    <div id="tResults"></div>
+    <div id="tPlace" class="hint" style="font-weight:700"></div>
+    <label>Quando?</label>
+    <input type="date" id="tDate" value="${todayStr()}" max="${todayStr()}" min="${u.acquiredDate}">
+    <label>Momento (opcional)</label>
+    <input type="text" id="tNote" placeholder="Ex.: chuva no obelisco, valeu cada dobra!">
+    <label>Fotos do momento (até 3)</label>
+    <div class="photos3" id="ph-trip"></div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="doTrip('${u.id}')">${ico('check',14)} Salvar viagem</button>
+    </div>`;
+  phRender('trip');
+  openModal();
+  $('tQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') tripSearch(); });
+}
+function setTripPlace(p){
+  tripPlace = p;
+  const d = haversine(state.home, p);
+  $('tPlace').innerHTML = ico('pin',13)+' '+esc(p.label)+' — '+fmtKm(d)+' de casa';
+  $('tResults').innerHTML = '';
+}
+async function tripGPS(){
+  toast('Localizando...');
+  try{
+    const pos = await getGPS();
+    const label = await geoLabel(pos.lat, pos.lon);
+    setTripPlace({label, lat: pos.lat, lon: pos.lon});
+  }catch(err){ toast(String(err)); }
+}
+async function tripSearch(){
+  const q = $('tQuery').value.trim(); if(!q) return;
+  $('tResults').innerHTML = '<p class="hint">Buscando...</p>';
+  try{
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=pt&format=json`);
+    const j = await r.json();
+    if(!j.results?.length){ $('tResults').innerHTML='<p class="hint">Nada encontrado.</p>'; return; }
+    window._tripResults = j.results;
+    $('tResults').innerHTML = j.results.map((c,i)=>
+      `<div class="cityopt" onclick="pickTripCity(${i})">📍 ${esc(c.name)}${c.admin1?', '+esc(c.admin1):''} — ${esc(c.country||'')}</div>`).join('');
+  }catch(e){ $('tResults').innerHTML='<p class="hint">Erro de conexão.</p>'; }
+}
+function pickTripCity(i){
+  const c = window._tripResults[i];
+  setTripPlace({label: c.name+(c.admin1?' - '+c.admin1:'')+(c.country&&c.country!=='Brasil'?' ('+c.country+')':''), lat: c.latitude, lon: c.longitude});
+}
+function doTrip(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  if(!tripPlace){ toast('Escolha o lugar da viagem!'); return; }
+  const distKm = +haversine(state.home, tripPlace).toFixed(1);
+  u.trips.push({ id: uid(), date: $('tDate').value||todayStr(), label: tripPlace.label,
+    lat: tripPlace.lat, lon: tripPlace.lon, distKm, note: $('tNote').value.trim(),
+    photos: PH.trip.filter(Boolean) });
+  PH.trip=[null,null,null];
+  save(); renderRank(); openDetail(id);
+  toast('🧳 Viagem registrada: '+tripPlace.label+' ('+fmtKm(distKm)+')');
+}
+
+/* ================= aposentar / vender ================= */
+function openRetire(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  PH.retire=[null,null,null];
+  $('sheet').innerHTML = `
+    <h3>${ico('tomb',18)} Aposentar "${esc(u.name)}"</h3>
+    <p class="hint">Ele vai para o memorial, com todo o histórico preservado.</p>
+    <label>O que aconteceu?</label>
+    <select id="rReason" onchange="retireReasonChange()">${LOSS_REASONS.map(r=>`<option>${r}</option>`).join('')}</select>
+    <div id="rSaleWrap" hidden>
+      <div class="row" style="margin-top:8px">
+        <input type="number" id="rSaleValue" placeholder="Valor da venda (R$)" min="0" step="0.01" inputmode="decimal">
+        <input type="text" id="rSaleTo" placeholder="Vendido para quem?">
+      </div>
+      <p class="hint">Depois de confirmar, use "Enviar p/ comprador" nos detalhes: o histórico e os pontos viajam junto! 🏆</p>
+    </div>
+    <label>Quando?</label>
+    <input type="date" id="rDate" value="${todayStr()}" max="${todayStr()}" min="${u.acquiredDate}">
+    <label>Quer contar a história? (opcional)</label>
+    <textarea id="rNote" placeholder="Ex.: ventania na esquina da padaria, virou do avesso e nunca mais foi o mesmo..."></textarea>
+    <label>Fotos de despedida (até 3, opcional)</label>
+    <div class="photos3" id="ph-retire"></div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="doRetire('${u.id}')">Confirmar ${ico('tomb',14)}</button>
+    </div>`;
+  phRender('retire');
+  openModal();
+}
+function retireReasonChange(){ $('rSaleWrap').hidden = $('rReason').value !== 'Vendi 💰'; }
+function doRetire(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  u.retiredDate = $('rDate').value || todayStr();
+  u.retiredReason = $('rReason').value;
+  u.retiredNote = $('rNote').value.trim();
+  u.retiredPhotos = PH.retire.filter(Boolean);
+  if(u.retiredReason === 'Vendi 💰'){
+    u.saleValue = parseFloat($('rSaleValue').value)||0;
+    u.saleTo = $('rSaleTo').value.trim();
+  }
+  if(u.loan){ u.loanHistory.push({...u.loan}); u.loan = null; }
+  PH.retire=[null,null,null];
+  save(); closeModal(); renderHome(); renderRank();
+  toast(u.retiredReason==='Vendi 💰' ? '💰 Boa venda! Não esqueça de enviar o histórico.' : 'Descanse em paz, '+u.name+' ☂️');
+}
+
+/* ================= venda: transferência ================= */
+function exportTransfer(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  const s = umbrellaStats(u);
+  const t = {
+    gcmTransfer: 1, exportedAt: new Date().toISOString(),
+    from: state.user ? {name: state.user.name, email: state.user.email} : null,
+    saleValue: u.saleValue||0,
+    umbrella: {
+      name: u.name, formato: u.formato, recursos: u.recursos, typeExtra: u.typeExtra,
+      originStory: u.originStory, photos: u.photos, trips: u.trips,
+      legacy: { days: s.lifeDays, rains: s.rains, mm: +s.mmTotal.toFixed(1), maxDry: s.maxDry }
+    }
+  };
+  const blob = new Blob([JSON.stringify(t)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'guardachuva-'+u.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-transferencia.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('📦 Arquivo gerado — envie ao comprador!');
+}
+$('btnReceive').addEventListener('click', ()=>$('receiveInput').click());
+$('receiveInput').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    try{
+      const t = JSON.parse(rd.result);
+      if(t.gcmTransfer !== 1 || !t.umbrella) throw 0;
+      const w = t.umbrella;
+      state.umbrellas.push({
+        id: uid(), name: w.name||'Recém-chegado', formato: w.formato||'dobravel',
+        recursos: w.recursos||[], typeExtra: w.typeExtra||'',
+        origin: 'comprado', price: t.saleValue||0,
+        originStory: (w.originStory?w.originStory+' — ':'')+'Comprado de '+(t.from?.name||'outro guardião')+' com histórico transferido.',
+        acquiredDate: todayStr(), photos: w.photos||[],
+        loan: null, loanHistory: [], locHistory: [], trips: w.trips||[], lost: null, recoveries: [],
+        retiredDate: null, retiredReason: null, retiredNote: null, retiredPhotos: [],
+        legacy: w.legacy||null, createdAt: new Date().toISOString()
+      });
+      save(); renderHome(); renderRank(); showTab('home');
+      toast('☂️ '+(w.name||'Guarda-chuva')+' chegou com todo o histórico!');
+      syncRain(true);
+    }catch(err){ toast('Arquivo de transferência inválido'); }
+  };
+  rd.readAsText(f);
+  e.target.value='';
+});
+
+/* ================= relatório PDF ================= */
+let reportId = null;
+function openReport(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  reportId = id;
+  const s = umbrellaStats(u);
+  const pts = calcPoints(u, s), r = rankOf(pts);
+  const origin = ORIGINS.find(o=>o.id===u.origin) || ORIGINS[4];
+  const fmt = FORMATOS.find(f=>f.id===u.formato);
+  const recTxt = u.recursos.map(rid=>RECURSOS.find(x=>x.id===rid)?.label).filter(Boolean).join(', ');
+  const gal = (u.photos||[]).filter(Boolean).map(p=>`<img src="${p}">`).join('');
+  const trips = [...u.trips].sort((a,b)=>a.date.localeCompare(b.date)).map(t=>
+    `<div class="rep-item"><b>${esc(t.label)}</b> — ${fmtKm(t.distKm||0)} de casa <div class="d">${fmtBR(t.date)}${t.note?' · '+esc(t.note):''}</div>${(t.photos||[]).length?`<div class="rep-gal">${t.photos.map(p=>`<img src="${p}">`).join('')}</div>`:''}</div>`).join('');
+  const loans = [...u.loanHistory].map(l=>
+    `<div class="rep-item">${esc(l.to)} <div class="d">${fmtBR(l.date)}${l.reason?' · '+esc(l.reason):''} · ${l.returned?'devolvido em '+fmtBR(l.returned):'nunca voltou'}</div></div>`).join('');
+  const recsRep = [...u.recoveries].map(r=>
+    `<div class="rep-item">Sumiu em ${fmtBR(r.lostDate)} e voltou em ${fmtBR(r.foundDate)} (${daysBetween(r.lostDate,r.foundDate)} dia(s) fora)${r.note?` <div class="d">${esc(r.note)}</div>`:''}</div>`).join('');
+  const retGal = (u.retiredPhotos||[]).filter(Boolean).map(p=>`<img src="${p}">`).join('');
+  $('repBody').innerHTML = `
+    <h1>${ico('umbrella',24)} Certidão de Vida do Guarda-Chuva</h1>
+    <div class="rp-sub">Emitida pelo Guardachuvômetro em ${fmtBR(todayStr())}${state.user?' · Guardião: '+(state.user.photo?`<img src="${state.user.photo}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px"> `:'')+esc(state.user.name):''}</div>
+    <h2>${esc(u.name)} &nbsp;<span class="rep-badge">${r.e} ${r.name} · ${fmtNum(pts)} pts</span></h2>
+    ${gal?`<div class="rep-gal">${gal}</div>`:''}
+    <table>
+      <tr><td>Formato</td><td>${fmt?fmt.label:'—'}</td></tr>
+      ${recTxt?`<tr><td>Recursos</td><td>${esc(recTxt)}</td></tr>`:''}
+      ${u.typeExtra?`<tr><td>Funcionalidade especial</td><td>${esc(u.typeExtra)}</td></tr>`:''}
+      <tr><td>Origem</td><td>${origin.label}${u.origin==='comprado'&&u.price>0?' por '+money(u.price):''}</td></tr>
+      <tr><td>Início da jornada</td><td>${fmtBR(u.acquiredDate)}</td></tr>
+      <tr><td>Tempo de vida</td><td>${fmtDur(s.lifeDays)} (${fmtNum(s.lifeDays)} dias)</td></tr>
+      <tr><td>Chuvas enfrentadas</td><td>${fmtNum(s.rains)} 🌧️</td></tr>
+      <tr><td>Precipitação acumulada</td><td>${fmtMm(s.mmTotal)} mm</td></tr>
+      <tr><td>Maior período sem uso</td><td>${fmtNum(s.maxDry)} dias</td></tr>
+      <tr><td>Viagens</td><td>${s.trips}${s.maxDist?' · distância máxima: '+fmtKm(s.maxDist):''}</td></tr>
+      ${s.costPerRain!==null?`<tr><td>Custo por chuva</td><td>${money(s.costPerRain)}</td></tr>`:''}
+      ${s.costPerMm!==null?`<tr><td>Custo por mm de chuva</td><td>${money(s.costPerMm)}</td></tr>`:''}
+      ${s.costPerDay!==null?`<tr><td>Custo por dia de companhia</td><td>${money(s.costPerDay)}</td></tr>`:''}
+      ${u.retiredDate?`<tr><td>${u.retiredReason==='Vendi 💰'?'Vendido':'Aposentado'} em</td><td>${fmtBR(u.retiredDate)} — ${esc(u.retiredReason||'')}</td></tr>`:''}
+    </table>
+    ${u.originStory?`<h2>Como chegou</h2><p style="font-size:13px;line-height:1.6">${esc(u.originStory)}</p>`:''}
+    ${trips?`<h2>Diário de viagens</h2>${trips}`:''}
+    ${recsRep?`<h2>Perdas e reencontros</h2>${recsRep}`:''}
+    ${loans?`<h2>Empréstimos</h2>${loans}`:''}
+    ${u.retiredNote||retGal?`<h2>Despedida</h2>${u.retiredNote?`<p style="font-size:13px;line-height:1.6">${esc(u.retiredNote)}</p>`:''}${retGal?`<div class="rep-gal">${retGal}</div>`:''}`:''}
+    <div class="rep-foot">☂️ Guardachuvômetro — a vida secreta dos guarda-chuvas · dados de chuva: open-meteo.com</div>`;
+  closeModal();
+  $('report').classList.add('open');
+}
+$('repClose').addEventListener('click', ()=>{ $('report').classList.remove('open'); if(reportId) openDetail(reportId); });
+$('repPrint').addEventListener('click', ()=>window.print());
+$('repShare').addEventListener('click', ()=>{
+  const u = state.umbrellas.find(x=>x.id===reportId); if(!u) return;
+  const s = umbrellaStats(u), pts = calcPoints(u,s), r = rankOf(pts);
+  const text = `☂️ ${u.name} — patente ${r.e} ${r.name} (${fmtNum(pts)} pts)\n`+
+    `🌧️ ${fmtNum(s.rains)} chuvas · 💧 ${fmtNum(s.mmTotal)} mm · 📅 ${fmtDur(s.lifeDays)} de vida`+
+    (s.maxDist?`\n🧳 ${s.trips} viagens · máx ${fmtKm(s.maxDist)} de casa`:'')+
+    `\n— via Guardachuvômetro`;
+  if(navigator.share) navigator.share({title:'Guardachuvômetro — '+u.name, text}).catch(()=>{});
+  else { navigator.clipboard?.writeText(text); toast('Resumo copiado! Cole onde quiser 📋'); }
+});
+
+/* ================= aba: ranking ================= */
+function pointsBreakdown(u, s){
+  s = s || umbrellaStats(u);
+  let tripPts = 0;
+  for(const t of (u.trips||[])) tripPts += 30 + Math.min(Math.round((t.distKm||0)*0.5), 500);
+  const devolvidos = (u.loanHistory||[]).filter(l=>l.returned).length;
+  const rec = (u.recoveries||[]).length;
+  const ph = (u.photos||[]).length;
+  return [
+    {ic:'rain',   l:'Chuvas enfrentadas',     d:fmtNum(s.rains)+' chuva(s) × 10',       p:s.rains*10},
+    {ic:'drop',   l:'Precipitação vivida',    d:fmtMm(s.mmTotal)+' mm × 0,2',           p:Math.round(s.mmTotal*0.2)},
+    {ic:'cal',    l:'Dias de companhia',      d:fmtNum(s.lifeDays)+' dia(s) × 1',       p:s.lifeDays},
+    {ic:'case',   l:'Viagens',                d:fmtNum(s.trips)+' viagem(ns) + km',     p:tripPts},
+    {ic:'swap',   l:'Empréstimos devolvidos', d:fmtNum(devolvidos)+' × 25',             p:devolvidos*25},
+    {ic:'star',   l:'Reencontros',            d:fmtNum(rec)+' × 50',                    p:rec*50},
+    {ic:'camera', l:'Fotos do guarda-chuva',  d:fmtNum(ph)+' × 5',                      p:ph*5},
+    {ic:'book',   l:'História de origem',     d:u.originStory?'contada':'—',            p:u.originStory?10:0},
+    {ic:'bolt',   l:'Funcionalidade especial',d:u.typeExtra?'informada':'—',            p:u.typeExtra?5:0},
+  ];
+}
+function openPointsBreakdown(id){
+  const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
+  const s = umbrellaStats(u), rows = pointsBreakdown(u, s);
+  const pts = calcPoints(u, s), r = rankOf(pts);
+  $('sheet').innerHTML = `
+    <h3>${ico('star',18)} Extrato de pontos — ${esc(u.name)}</h3>
+    <p class="hint">Patente ${r.e} <b>${r.name}</b> · como cada indicador contribuiu:</p>
+    <table class="detail-table">
+      ${rows.map(x=>`<tr><td>${ico(x.ic,14)} ${x.l}<br><span style="color:var(--muted);font-size:11px">${x.d}</span></td><td style="color:${x.p>0?'var(--brand2)':'var(--muted)'}">+${fmtNum(x.p)}</td></tr>`).join('')}
+      <tr><td><b>Total</b></td><td><b>${fmtNum(pts)} pts</b></td></tr>
+    </table>
+    <div class="row" style="margin-top:14px">
+      <button class="btn ghost" onclick="openPointsInfo()">${ico('book',14)} Regras</button>
+      <button class="btn" onclick="closeModal()">Fechar</button>
+    </div>`;
+  openModal();
+}
+function openPointsInfo(){
+  const rules = [
+    ['rain','Chuva enfrentada','+10'],
+    ['drop','Milímetro de precipitação','+0,2'],
+    ['cal','Dia de companhia','+1'],
+    ['case','Viagem registrada','+30 e +0,5/km (máx +500)'],
+    ['swap','Empréstimo devolvido','+25'],
+    ['star','Reencontro de perdido','+50'],
+    ['camera','Cada foto do guarda-chuva','+5'],
+    ['book','História de como chegou','+10'],
+    ['bolt','Funcionalidade especial','+5'],
+  ];
+  $('sheet').innerHTML = `
+    <h3>${ico('star',18)} Como ganhar pontos</h3>
+    <p class="hint">Cada guarda-chuva acumula pontos por tudo que vive ao seu lado — e vai subindo de patente. Assim se ganha:</p>
+    <table class="detail-table">${rules.map(r=>`<tr><td>${ico(r[0],14)} ${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>
+    <div class="sec"><h4>${ico('trophy',14)} As patentes</h4>
+      <table class="detail-table">${[...RANKS].reverse().map(r=>`<tr><td>${r.e} ${r.name}</td><td>${r.min.toLocaleString('pt-BR')}${r.min>0?'+':''} pts</td></tr>`).join('')}</table>
+    </div>
+    <div class="sec"><h4>${ico('check',14)} Dicas de guardião</h4>
+      <p class="hint" style="margin:0">
+      • Registre as viagens — cada quilômetro longe de casa vale ponto! 🧳<br>
+      • Marque os empréstimos e comemore quando voltarem (+25).<br>
+      • Capriche nas 3 fotos e conte a história de como ele chegou.<br>
+      • Perdeu? Não desista: o reencontro vale +50. 🍀<br>
+      • E o principal: deixe ele viver — dia de companhia e chuva enfrentada são a base de tudo. ☂️</p>
+    </div>
+    <button class="btn full ghost" style="margin-top:14px" onclick="closeModal()">Fechar</button>`;
+  openModal();
+}
+function renderRank(){
+  $('btnPtsInfo').innerHTML = ico('star',15)+' Como ganhar pontos e subir de patente?';
+  const us = state.umbrellas;
+  const lost = us.filter(u=>u.retiredDate);
+  const all = us.map(u=>({u, s:umbrellaStats(u)})).map(x=>({...x, pts:calcPoints(x.u,x.s)}));
+  const totalSpent = us.reduce((a,u)=>a+(u.price||0),0);
+  const totalRains = all.reduce((a,x)=>a+x.s.rains,0);
+  const totalMm = all.reduce((a,x)=>a+x.s.mmTotal,0);
+  const totalKm = all.reduce((a,x)=>a+x.s.kmTotal,0);
+  const totalPts = all.reduce((a,x)=>a+x.pts,0);
+  $('rankKpis').innerHTML = `
+    <div class="kpi"><div class="v">${fmtNum(us.length)}</div><div class="l">guarda-chuvas na vida</div></div>
+    <div class="kpi"><div class="v">${money(totalSpent)}</div><div class="l">investidos</div></div>
+    <div class="kpi"><div class="v">${fmtNum(totalRains)}</div><div class="l">chuvas enfrentadas</div></div>
+    <div class="kpi"><div class="v">${fmtNum(totalMm)} mm</div><div class="l">precipitação vivida</div></div>
+    <div class="kpi"><div class="v">${fmtKm(totalKm)}</div><div class="l">viajados juntos</div></div>
+    <div class="kpi"><div class="v">${fmtNum(totalPts)}</div><div class="l">pontos somados</div></div>`;
+  $('h-rkPts').innerHTML = ico('star',15)+' Ranking por pontos <span style="font-weight:400;font-size:11px;color:var(--muted)">· toque para ver o extrato</span>';
+  $('h-rkRains').innerHTML = ico('rain',15)+' Por chuvas enfrentadas';
+  $('h-rkDist').innerHTML = ico('case',15)+' Por distância máxima de casa';
+  $('h-rkDays').innerHTML = ico('cal',15)+' Por dias de posse';
+  $('h-rkPrice').innerHTML = ico('coin',15)+' Por preço';
+  $('h-rkCb').innerHTML = ico('check',15)+' Melhor investimento (R$/chuva)';
+  $('h-rkFound').innerHTML = ico('star',15)+' Reencontros (+50 pts cada)';
+  $('h-rkLost').innerHTML = ico('tomb',15)+' Memorial — por que se foram';
+  const pos = i => `<span class="pos ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</span>`;
+  const tomb = u => u.retiredDate?' 🪦':'';
+  const li = (arr, valFn) => arr.length ? arr.map((x,i)=>
+    `<li>${pos(i)}<span class="nm">${esc(x.u.name)}${tomb(x.u)}</span><span class="val">${valFn(x)}</span></li>`).join('') : '<li>Sem dados ainda.</li>';
+  const byPts = [...all].sort((a,b)=>b.pts-a.pts);
+  $('rankPts').innerHTML = byPts.length ? byPts.map((x,i)=>
+    `<li style="cursor:pointer" onclick="openPointsBreakdown('${x.u.id}')">${pos(i)}<span class="nm">${esc(x.u.name)}${tomb(x.u)}</span><span class="val">${rankOf(x.pts).e} ${fmtNum(x.pts)} pts ›</span></li>`).join('')
+    : '<li>Sem dados ainda.</li>';
+  $('rankRains').innerHTML = li([...all].sort((a,b)=>b.s.rains-a.s.rains), x=>fmtNum(x.s.rains)+' 🌧 · '+fmtNum(x.s.mmTotal)+'mm');
+  const trav = all.filter(x=>x.s.maxDist>0).sort((a,b)=>b.s.maxDist-a.s.maxDist);
+  $('rankDist').innerHTML = trav.length ? li(trav, x=>fmtKm(x.s.maxDist)) : '<li>Nenhuma viagem registrada ainda. Bora rodar o mundo! 🧳</li>';
+  $('rankDays').innerHTML = li([...all].sort((a,b)=>b.s.ownDays-a.s.ownDays), x=>fmtNum(x.s.ownDays)+' dias');
+  const byPrice = all.filter(x=>x.u.origin==='comprado'&&x.u.price>0).sort((a,b)=>b.u.price-a.u.price);
+  $('rankPrice').innerHTML = byPrice.length ? li(byPrice, x=>money(x.u.price)) : '<li>Nenhum comprado — que economia! 🍀</li>';
+  const byCb = all.filter(x=>x.s.costPerRain!==null).sort((a,b)=>a.s.costPerRain-b.s.costPerRain);
+  $('rankCb').innerHTML = byCb.length ? li(byCb, x=>money(x.s.costPerRain)+'/chuva') : '<li>Precisa ter sido comprado e já ter pegado chuva. ☔</li>';
+  const byFound = all.filter(x=>(x.u.recoveries||[]).length>0).sort((a,b)=>b.u.recoveries.length-a.u.recoveries.length);
+  $('rankFound').innerHTML = byFound.length ? li(byFound, x=>x.u.recoveries.length+'x reencontrado 🎉') : '<li>Nenhum perdido e reencontrado ainda — tomara que continue assim! 🍀</li>';
+  $('rankLost').innerHTML = lost.length ? lost.sort((a,b)=>b.retiredDate.localeCompare(a.retiredDate)).map(u=>
+    `<li><span class="pos">🪦</span><span class="nm">${esc(u.name)} <span style="color:var(--muted);font-size:12px">· ${esc(u.retiredReason||'')}${u.saleValue?' ('+money(u.saleValue)+')':''}</span></span><span class="val">${fmtBR(u.retiredDate)}</span></li>`).join('')
+    : '<li>Nenhuma baixa até hoje. Parabéns, guardião responsável! 🏅</li>';
+}
+
+/* ================= aba: ajustes ================= */
+function renderCfg(){
+  $('h-perfil').innerHTML = ico('user',15)+' Seu perfil';
+  $('h-local').innerHTML = ico('pin',15)+' Localização (clima)';
+  $('h-casa').innerHTML = ico('home',15)+' Sua casa (viagens)';
+  $('h-transf').innerHTML = ico('down',15)+' Receber guarda-chuva';
+  $('h-backup').innerHTML = ico('doc',15)+' Backup';
+  if(state.user){ $('cfgName').value = state.user.name; $('cfgEmail').value = state.user.email; }
+  PH.user[0] = state.user?.photo || null;
+  phRender('user');
+  $('homeInfo').innerHTML = state.home ? ico('home',13)+' Casa marcada: '+esc(state.home.name) : 'Casa ainda não marcada.';
+}
+$('btnProfile').addEventListener('click', ()=>{
+  const name = $('cfgName').value.trim(), email = $('cfgEmail').value.trim();
+  if(!name){ toast('O nome é obrigatório'); return; }
+  if(!/.+@.+\..+/.test(email)){ toast('E-mail inválido'); return; }
+  state.user = {name, email, photo: PH.user[0] || null}; save(); renderHeader();
+  toast('Perfil salvo, '+name.split(' ')[0]+'!');
+});
+$('btnGeo').addEventListener('click', async ()=>{
+  toast('Localizando...');
+  try{
+    const pos = await getGPS();
+    const name = await geoLabel(pos.lat, pos.lon);
+    setLocation({name, lat: pos.lat, lon: pos.lon});
+  }catch(err){ toast(String(err)+' — busque a cidade'); }
+});
+function citySearchGeneric(qEl, outEl, cb){
+  const q = $(qEl).value.trim(); if(!q) return;
+  $(outEl).innerHTML = '<p class="hint">Buscando...</p>';
+  fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=pt&format=json`)
+    .then(r=>r.json())
+    .then(j=>{
+      if(!j.results?.length){ $(outEl).innerHTML='<p class="hint">Nada encontrado. Tente só o nome da cidade.</p>'; return; }
+      $(outEl).innerHTML = j.results.map((c,i)=>
+        `<div class="cityopt" data-i="${i}">📍 ${esc(c.name)}${c.admin1?', '+esc(c.admin1):''} — ${esc(c.country||'')}</div>`).join('');
+      [...$(outEl).children].forEach(el=>el.addEventListener('click',()=>{
+        const c=j.results[+el.dataset.i];
+        cb({name:c.name+(c.admin1?' - '+c.admin1:''), lat:c.latitude, lon:c.longitude});
+        $(outEl).innerHTML=''; $(qEl).value='';
+      }));
+    })
+    .catch(()=>{ $(outEl).innerHTML='<p class="hint">Erro de conexão.</p>'; });
+}
+$('btnCity').addEventListener('click', ()=>citySearchGeneric('cityQuery','cityResults',setLocation));
+$('cityQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') citySearchGeneric('cityQuery','cityResults',setLocation); });
+$('btnHomeCity').addEventListener('click', ()=>citySearchGeneric('homeQuery','homeResults',setHome));
+$('homeQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') citySearchGeneric('homeQuery','homeResults',setHome); });
+$('btnHomeGps').addEventListener('click', async ()=>{
+  toast('Localizando sua casa...');
+  try{
+    const pos = await getGPS();
+    const name = await geoLabel(pos.lat, pos.lon);
+    setHome({name, lat: pos.lat, lon: pos.lon});
+  }catch(err){ toast(String(err)); }
+});
+function setLocation(loc){
+  state.location = loc; state.rainLog = {}; state.lastSync = null; save();
+  renderHeader(); toast('📍 '+loc.name);
+  syncRain(true);
+}
+function setHome(loc){
+  state.home = loc; save(); renderCfg();
+  toast('🏠 Casa marcada: '+loc.name);
+}
+$('btnExport').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(state)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'guardachuvometro-backup-'+todayStr()+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Backup exportado 💾');
+});
+$('btnImport').addEventListener('click', ()=>$('importInput').click());
+$('importInput').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    try{
+      const s = JSON.parse(rd.result);
+      if(!s.umbrellas) throw 0;
+      localStorage.setItem(LS_KEY, JSON.stringify(s));
+      state = load(); save(); renderAll(); toast('Backup restaurado ✔');
+    }catch(err){ toast('Arquivo inválido'); }
+  };
+  rd.readAsText(f);
+  e.target.value='';
+});
+
+/* ================= onboarding ================= */
+function checkOnboard(){
+  if(state.user) return;
+  $('obIco').innerHTML = ico('umbrella',22,2);
+  PH.user[0] = null;
+  phRender('user');
+  $('onboard').classList.add('open');
+}
+$('obGo').addEventListener('click', ()=>{
+  const name = $('obName').value.trim(), email = $('obEmail').value.trim();
+  if(!name){ toast('Me diz seu nome! 😄'); $('obName').focus(); return; }
+  if(!/.+@.+\..+/.test(email)){ toast('E-mail inválido'); $('obEmail').focus(); return; }
+  state.user = {name, email, photo: PH.user[0] || null}; save();
+  $('onboard').classList.remove('open');
+  renderHeader(); renderCfg();
+  toast('Bem-vindo, '+name.split(' ')[0]+'! Defina sua cidade em Ajustes ☂️');
+});
+
+/* ================= fundo animado (discreto) ================= */
+const FX = (()=>{
+  const cv = $('bgfx'), ctx = cv.getContext('2d');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let mode='home', parts=[], raf=null, W=0, H=0;
+  function resize(){ W = cv.width = innerWidth; H = cv.height = innerHeight; }
+  addEventListener('resize', resize); resize();
+  const R = Math.random;
+  function newPart(anyPos){
+    if(mode==='home')  return {x:R()*W, y:anyPos?R()*H:-20, len:9+R()*12, sp:1.2+R()*1.5, drift:0.2+R()*0.25, o:0.12+R()*0.10};
+    if(mode==='new')   return {x:R()*W, y:anyPos?R()*H:H+30, s:13+R()*18, sp:0.15+R()*0.25, ph:R()*6.28, o:0.10+R()*0.08};
+    if(mode==='rank')  return {x:R()*W, y:anyPos?R()*H:H+10, sp:0.12+R()*0.22, s:1.3+R()*2, tw:R()*6.28, o:0.18+R()*0.16};
+    return {x:anyPos?R()*W:-170, y:R()*H*0.75, s:38+R()*55, sp:0.06+R()*0.09, o:0.06+R()*0.05};   // nuvens
+  }
+  function spawn(){
+    const n = mode==='cfg' ? 7 : mode==='new' ? 14 : mode==='rank' ? 34 : 40;
+    parts = Array.from({length:n}, ()=>newPart(true));
+  }
+  function cloud(x,y,s){
+    ctx.beginPath();
+    ctx.arc(x, y, s*.5, 0, 6.29);
+    ctx.arc(x+s*.5, y-s*.2, s*.36, 0, 6.29);
+    ctx.arc(x+s*.95, y, s*.42, 0, 6.29);
+    ctx.fill();
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const blue = '46,109,164';
+    for(let i=0;i<parts.length;i++){
+      const p = parts[i];
+      if(mode==='home'){                       // chuvinha caindo
+        p.y += p.sp; p.x += p.drift;
+        ctx.strokeStyle = `rgba(${blue},${p.o})`; ctx.lineWidth = 1.6; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.drift*7, p.y - p.len); ctx.stroke();
+        if(p.y > H+25) parts[i] = newPart(false);
+      }else if(mode==='new'){                  // guarda-chuvas flutuando pra cima
+        p.y -= p.sp; p.ph += 0.008;
+        ctx.font = p.s+'px serif'; ctx.fillStyle = `rgba(${blue},${p.o})`;
+        ctx.fillText('☂', p.x + Math.sin(p.ph)*16, p.y);
+        if(p.y < -35) parts[i] = newPart(false);
+      }else if(mode==='rank'){                 // estrelinhas douradas subindo
+        p.y -= p.sp; p.tw += 0.03;
+        ctx.fillStyle = `rgba(201,141,44,${p.o*(0.55+0.45*Math.sin(p.tw))})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.29); ctx.fill();
+        if(p.y < -12) parts[i] = newPart(false);
+      }else{                                   // nuvens passando
+        p.x += p.sp;
+        ctx.fillStyle = `rgba(${blue},${p.o})`;
+        cloud(p.x, p.y, p.s);
+        if(p.x - p.s*1.5 > W){ parts[i] = newPart(false); }
+      }
+    }
+  }
+  function step(){
+    draw();
+    raf = requestAnimationFrame(step);
+  }
+  function setMode(m){
+    if(m !== mode || !parts.length){ mode = m; spawn(); }
+    if(reduced){ draw(); return; }             // "reduzir movimento": cenário estático
+    if(!raf && !document.hidden) step();
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
+    else if(!raf && !reduced) step();
+  });
+  return {setMode};
+})();
+
+/* ================= navegação / modal ================= */
+function showTab(t){
+  ['home','new','rank','cfg'].forEach(x=>{
+    const el = $('tab-'+x);
+    if(x===t && el.hidden){ el.hidden=false; el.style.animation='none'; void el.offsetWidth; el.style.animation=''; }
+    else if(x!==t) el.hidden = true;
+  });
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
+  FX.setMode(t);
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+function openModal(){ $('modal').classList.add('open'); }
+function closeModal(){ $('modal').classList.remove('open'); }
+$('modal').addEventListener('click', e=>{ if(e.target===$('modal')) closeModal(); });
+
+/* ================= boot ================= */
+function renderNavIcons(){
+  const icons = {home:'umbrella', new:'plus', rank:'trophy', cfg:'gear'};
+  document.querySelectorAll('nav button').forEach(b=>{
+    b.querySelector('.nico').innerHTML = ico(icons[b.dataset.tab], 21, 1.7);
+  });
+  $('hdrIcoUmb').innerHTML = ico('umbrella',21,2);
+}
+function renderAll(){ renderNavIcons(); renderHeader(); renderHome(); renderNewForm(); renderRank(); renderCfg(); }
+renderAll();
+checkOnboard();
+FX.setMode('home');
+syncRain(false);   // atualização silenciosa ao abrir — sem alarmes ☂️
+</script>
+</body>
+</html>

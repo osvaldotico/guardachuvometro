@@ -220,7 +220,7 @@
 
       <label>Fotos do guarda-chuva (até 3 — capa, aberto, detalhe)</label>
       <div class="photos3" id="ph-new"></div>
-      <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+      <input type="file" id="photoInput" accept="image/*" hidden>
 
       <label>Apelido do guarda-chuva *</label>
       <input type="text" id="fName" placeholder="Ex.: Pretinho fiel, Herança da vovó...">
@@ -241,8 +241,7 @@
       </div>
       <textarea id="fOriginStory" placeholder="Quer contar a história? Ex.: comprei correndo numa chuva surpresa na 25 de Março..." style="margin-top:8px"></textarea>
 
-      <label>Está com você desde</label>
-      <input type="date" id="fDate">
+      <p class="hint" style="margin-top:12px">A jornada dele começa <b>hoje</b> — chuvas, pontos e patentes contam a partir do cadastro. ⏱️</p>
 
       <button class="btn full" id="btnSave"></button>
     </div>
@@ -311,7 +310,7 @@
       <input type="file" id="importInput" accept=".json" hidden>
     </div>
     <div class="card">
-      <p class="hint" style="margin:0">Guardachuvômetro v0.6 — protótipo. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público, liberado para uso comercial; fecha com ~4 dias de atraso) complementados pela <b>Open-Meteo</b> nos dias mais recentes. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️</p>
+      <p class="hint" style="margin:0">Guardachuvômetro v0.7 — protótipo. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público, liberado para uso comercial; fecha com ~4 dias de atraso) complementados pela <b>Open-Meteo</b> nos dias mais recentes. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️</p>
     </div>
   </section>
 </main>
@@ -336,6 +335,15 @@
   <input type="text" id="obName" placeholder="Como quer ser chamado?">
   <label>Seu e-mail *</label>
   <input type="email" id="obEmail" placeholder="voce@email.com">
+  <label>Onde fica sua casa? *</label>
+  <p class="hint" style="margin:0 0 8px">É a base do seu guarda-chuva: define a chuva da sua região e a distância das viagens.</p>
+  <button class="btn full ghost" id="obHomeGps" style="margin-top:0">Estou em casa — usar GPS 📍</button>
+  <div class="georow">
+    <input type="text" id="obHomeQuery" placeholder="ou digite seu endereço/cidade...">
+    <button class="btn ghost" id="obHomeBtn">Buscar</button>
+  </div>
+  <div id="obHomeResults"></div>
+  <div id="obHomeInfo" class="hint" style="font-weight:700"></div>
   <button class="btn full" id="obGo">Começar ☂️</button>
 </div></div>
 
@@ -431,13 +439,15 @@ const ORIGINS = [
 ];
 const LOSS_REASONS = ['Perdi por aí','Esqueci no ônibus/uber','Emprestei e nunca voltou','Quebrou no vento','Desgastou de velhinho','Sumiu misteriosamente','Doei / dei de presente','Vendi 💰','Outro'];
 const RANKS = [
-  {min:3000, name:'MITO',        e:'🐉'},
-  {min:1500, name:'Lendário',    e:'🏆'},
-  {min:700,  name:'Guardião',    e:'⚔️'},
-  {min:300,  name:'Veterano',    e:'🛡️'},
-  {min:100,  name:'Companheiro', e:'☂️'},
+  {min:6000, name:'MITO',        e:'🐉'},
+  {min:2500, name:'Lendário',    e:'🏆'},
+  {min:1200, name:'Guardião',    e:'⚔️'},
+  {min:500,  name:'Veterano',    e:'🛡️'},
+  {min:150,  name:'Companheiro', e:'☂️'},
   {min:0,    name:'Novato',      e:'🌱'},
 ];
+const RELIC_DAYS = 1095;                                   // 3 anos de vida → alcunha Relíquia
+const ETERNO = {min:Infinity, name:'ETERNO', e:'👑'};      // posto supremo: MITO + Relíquia
 
 /* ================= estado ================= */
 let state = load();
@@ -650,8 +660,16 @@ function calcPoints(u, s){
 }
 function rankOf(pts){ return RANKS.find(r=>pts>=r.min); }
 function nextRank(pts){ return [...RANKS].reverse().find(r=>r.min>pts) || null; }
+function isRelic(s){ return s.lifeDays >= RELIC_DAYS; }
+function rankFor(u, s, pts){
+  s = s || umbrellaStats(u);
+  if(pts === undefined) pts = calcPoints(u, s);
+  if(pts >= RANKS[0].min && isRelic(s)) return ETERNO;     // MITO + 3 anos = ETERNO 👑
+  return rankOf(pts);
+}
 function badge(u, s){
-  const pts = calcPoints(u, s), r = rankOf(pts);
+  s = s || umbrellaStats(u);
+  const pts = calcPoints(u, s), r = rankFor(u, s, pts);
   return `<span class="rankbadge" title="${fmtNum(pts)} pontos">${r.e} ${r.name}</span>`;
 }
 
@@ -709,6 +727,7 @@ function renderHome(){
           </div>
         </div>
         <div class="utags utrow">
+          ${isRelic(s)?`<span class="chip gold">⏳ Relíquia</span>`:''}
           ${fmt?`<span class="chip">${fmtSvg(u.formato,13)} ${fmt.label}</span>`:''}
           ${recChips}
           <span class="chip">${ico(origin.ic,11)} ${esc(priceTxt)}</span>
@@ -761,7 +780,7 @@ async function registerLoc(id){
 function openDetail(id){
   const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
   const s = umbrellaStats(u);
-  const pts = calcPoints(u, s), r = rankOf(pts), nx = nextRank(pts);
+  const pts = calcPoints(u, s), r = rankFor(u, s, pts), nx = nextRank(pts);
   const origin = ORIGINS.find(o=>o.id===u.origin) || ORIGINS[4];
   const fmt = FORMATOS.find(f=>f.id===u.formato);
   const gal = (u.photos||[]).filter(Boolean).map(p=>`<img src="${p}">`).join('');
@@ -786,7 +805,13 @@ function openDetail(id){
     ${gal?`<div class="gal">${gal}</div>`:''}
     <div class="sec">
       <h4>${ico('star',14)} ${fmtNum(pts)} pontos — patente ${r.e} ${r.name}</h4>
-      ${nx?`<div class="progress"><div style="width:${Math.min(100,Math.round(pts/nx.min*100))}%"></div></div><div class="hint">faltam ${fmtNum(nx.min-pts)} pts para ${nx.e} ${nx.name} · <a href="#" onclick="openPointsBreakdown('${u.id}');return false" style="color:var(--brand2);font-weight:600">extrato</a> · <a href="#" onclick="openPointsInfo();return false" style="color:var(--brand2);font-weight:600">regras</a></div>`:`<div class="hint">patente máxima alcançada! 🐉 · <a href="#" onclick="openPointsBreakdown('${u.id}');return false" style="color:var(--brand2);font-weight:600">extrato</a> · <a href="#" onclick="openPointsInfo();return false" style="color:var(--brand2);font-weight:600">regras</a></div>`}
+      ${isRelic(s)&&r!==ETERNO?`<div class="hint" style="margin-top:2px">⏳ alcunha <b>Relíquia</b> conquistada: 3+ anos de estrada</div>`:''}
+      ${r===ETERNO
+        ? `<div class="hint">👑 posto supremo alcançado — um ETERNO entre os guarda-chuvas!</div>`
+        : nx
+        ? `<div class="progress"><div style="width:${Math.min(100,Math.round(pts/nx.min*100))}%"></div></div><div class="hint">faltam ${fmtNum(nx.min-pts)} pts para ${nx.e} ${nx.name}${isRelic(s)?'':' · aos 3 anos de vida vem a alcunha ⏳ Relíquia'}</div>`
+        : `<div class="hint">🐉 MITO! Para o posto supremo 👑 ETERNO faltam ${fmtNum(RELIC_DAYS - s.lifeDays)} dias de estrada (3 anos de vida)</div>`}
+      <div class="hint"><a href="#" onclick="openPointsBreakdown('${u.id}');return false" style="color:var(--brand2);font-weight:600">extrato de pontos</a> · <a href="#" onclick="openPointsInfo();return false" style="color:var(--brand2);font-weight:600">regras</a></div>
     </div>
     <table class="detail-table">
       <tr><td>Com você desde</td><td>${fmtBR(u.acquiredDate)} (${fmtNum(s.ownDays)} dias)</td></tr>
@@ -882,8 +907,6 @@ function renderNewForm(){
     `<button class="${o.id===selOrigin?'on':''}" onclick="pickOrigin('${o.id}')">${ico(o.ic,14)} ${o.label}</button>`).join('');
   $('fPriceWrap').hidden = selOrigin!=='comprado';
   phRender('new');
-  if(!$('fDate').value) $('fDate').value = todayStr();
-  $('fDate').max = todayStr();
 }
 function pickFormato(f){ selFormato=f; renderNewForm(); }
 function toggleRecurso(r){
@@ -898,7 +921,7 @@ $('btnSave').addEventListener('click', ()=>{
     id: uid(), name, formato: selFormato, recursos: [...selRecursos], typeExtra: $('fTypeExtra').value.trim(),
     origin: selOrigin, price: selOrigin==='comprado' ? (parseFloat($('fPrice').value)||0) : 0,
     originStory: $('fOriginStory').value.trim(),
-    acquiredDate: $('fDate').value || todayStr(),
+    acquiredDate: todayStr(),   // sempre hoje — sem datas retroativas (anti-trapaça)
     photos: PH.new.filter(Boolean),
     loan: null, loanHistory: [], locHistory: [], trips: [], lost: null, recoveries: [],
     retiredDate: null, retiredReason: null, retiredNote: null, retiredPhotos: [],
@@ -906,7 +929,7 @@ $('btnSave').addEventListener('click', ()=>{
   };
   state.umbrellas.push(u); save();
   PH.new=[null,null,null];
-  $('fName').value=''; $('fTypeExtra').value=''; $('fPrice').value=''; $('fOriginStory').value=''; $('fDate').value='';
+  $('fName').value=''; $('fTypeExtra').value=''; $('fPrice').value=''; $('fOriginStory').value='';
   renderNewForm(); showTab('home'); renderHome(); renderRank();
   toast('☂️ '+name+' adotado com sucesso!');
   syncRain(true);
@@ -1166,7 +1189,7 @@ function openReport(id){
   const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
   reportId = id;
   const s = umbrellaStats(u);
-  const pts = calcPoints(u, s), r = rankOf(pts);
+  const pts = calcPoints(u, s), r = rankFor(u, s, pts);
   const origin = ORIGINS.find(o=>o.id===u.origin) || ORIGINS[4];
   const fmt = FORMATOS.find(f=>f.id===u.formato);
   const recTxt = u.recursos.map(rid=>RECURSOS.find(x=>x.id===rid)?.label).filter(Boolean).join(', ');
@@ -1181,7 +1204,7 @@ function openReport(id){
   $('repBody').innerHTML = `
     <h1>${ico('umbrella',24)} Certidão de Vida do Guarda-Chuva</h1>
     <div class="rp-sub">Emitida pelo Guardachuvômetro em ${fmtBR(todayStr())}${state.user?' · Guardião: '+(state.user.photo?`<img src="${state.user.photo}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px"> `:'')+esc(state.user.name):''}</div>
-    <h2>${esc(u.name)} &nbsp;<span class="rep-badge">${r.e} ${r.name} · ${fmtNum(pts)} pts</span></h2>
+    <h2>${esc(u.name)} &nbsp;<span class="rep-badge">${r.e} ${r.name} · ${fmtNum(pts)} pts</span>${isRelic(s)&&r!==ETERNO?' <span class="rep-badge">⏳ Relíquia</span>':''}</h2>
     ${gal?`<div class="rep-gal">${gal}</div>`:''}
     <table>
       <tr><td>Formato</td><td>${fmt?fmt.label:'—'}</td></tr>
@@ -1212,7 +1235,7 @@ $('repClose').addEventListener('click', ()=>{ $('report').classList.remove('open
 $('repPrint').addEventListener('click', ()=>window.print());
 $('repShare').addEventListener('click', ()=>{
   const u = state.umbrellas.find(x=>x.id===reportId); if(!u) return;
-  const s = umbrellaStats(u), pts = calcPoints(u,s), r = rankOf(pts);
+  const s = umbrellaStats(u), pts = calcPoints(u,s), r = rankFor(u,s,pts);
   const text = `☂️ ${u.name} — patente ${r.e} ${r.name} (${fmtNum(pts)} pts)\n`+
     `🌧️ ${fmtNum(s.rains)} chuvas · 💧 ${fmtNum(s.mmTotal)} mm · 📅 ${fmtDur(s.lifeDays)} de vida`+
     (s.maxDist?`\n🧳 ${s.trips} viagens · máx ${fmtKm(s.maxDist)} de casa`:'')+
@@ -1244,7 +1267,7 @@ function pointsBreakdown(u, s){
 function openPointsBreakdown(id){
   const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
   const s = umbrellaStats(u), rows = pointsBreakdown(u, s);
-  const pts = calcPoints(u, s), r = rankOf(pts);
+  const pts = calcPoints(u, s), r = rankFor(u, s, pts);
   $('sheet').innerHTML = `
     <h3>${ico('star',18)} Extrato de pontos — ${esc(u.name)}</h3>
     <p class="hint">Patente ${r.e} <b>${r.name}</b> · como cada indicador contribuiu:</p>
@@ -1275,7 +1298,10 @@ function openPointsInfo(){
     <p class="hint">Cada guarda-chuva acumula pontos por tudo que vive ao seu lado — e vai subindo de patente. Assim se ganha:</p>
     <table class="detail-table">${rules.map(r=>`<tr><td>${ico(r[0],14)} ${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>
     <div class="sec"><h4>${ico('trophy',14)} As patentes</h4>
-      <table class="detail-table">${[...RANKS].reverse().map(r=>`<tr><td>${r.e} ${r.name}</td><td>${r.min.toLocaleString('pt-BR')}${r.min>0?'+':''} pts</td></tr>`).join('')}</table>
+      <table class="detail-table">${[...RANKS].reverse().map(r=>`<tr><td>${r.e} ${r.name}</td><td>${r.min.toLocaleString('pt-BR')}${r.min>0?'+':''} pts</td></tr>`).join('')}
+      <tr><td>⏳ Relíquia <span style="color:var(--muted);font-size:11px">(alcunha)</span></td><td>3 anos de vida</td></tr>
+      <tr><td>👑 <b>ETERNO</b> <span style="color:var(--muted);font-size:11px">(posto supremo)</span></td><td>🐉 MITO + ⏳ 3 anos</td></tr></table>
+      <p class="hint">A alcunha ⏳ Relíquia só se conquista com o tempo — nenhum ponto compra 3 anos de estrada. E o 👑 ETERNO exige as duas glórias: a pontuação de MITO e a longevidade de Relíquia. É o topo absoluto.</p>
     </div>
     <div class="sec"><h4>${ico('check',14)} Dicas de guardião</h4>
       <p class="hint" style="margin:0">
@@ -1319,7 +1345,7 @@ function renderRank(){
     `<li>${pos(i)}<span class="nm">${esc(x.u.name)}${tomb(x.u)}</span><span class="val">${valFn(x)}</span></li>`).join('') : '<li>Sem dados ainda.</li>';
   const byPts = [...all].sort((a,b)=>b.pts-a.pts);
   $('rankPts').innerHTML = byPts.length ? byPts.map((x,i)=>
-    `<li style="cursor:pointer" onclick="openPointsBreakdown('${x.u.id}')">${pos(i)}<span class="nm">${esc(x.u.name)}${tomb(x.u)}</span><span class="val">${rankOf(x.pts).e} ${fmtNum(x.pts)} pts ›</span></li>`).join('')
+    `<li style="cursor:pointer" onclick="openPointsBreakdown('${x.u.id}')">${pos(i)}<span class="nm">${esc(x.u.name)}${tomb(x.u)}</span><span class="val">${rankFor(x.u,x.s,x.pts).e} ${fmtNum(x.pts)} pts ›</span></li>`).join('')
     : '<li>Sem dados ainda.</li>';
   $('rankRains').innerHTML = li([...all].sort((a,b)=>b.s.rains-a.s.rains), x=>fmtNum(x.s.rains)+' 🌧 · '+fmtNum(x.s.mmTotal)+'mm');
   const trav = all.filter(x=>x.s.maxDist>0).sort((a,b)=>b.s.maxDist-a.s.maxDist);
@@ -1380,10 +1406,29 @@ function citySearchGeneric(qEl, outEl, cb){
     })
     .catch(()=>{ $(outEl).innerHTML='<p class="hint">Erro de conexão.</p>'; });
 }
+/* busca por ENDEREÇO (rua, número, cidade) — OpenStreetMap/Nominatim, grátis */
+function searchAddress(qEl, outEl, cb){
+  const q = $(qEl).value.trim(); if(!q) return;
+  $(outEl).innerHTML = '<p class="hint">Buscando endereço...</p>';
+  fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&addressdetails=1&limit=5&accept-language=pt-BR`)
+    .then(r=>r.json())
+    .then(list=>{
+      if(!list.length){ $(outEl).innerHTML='<p class="hint">Nada encontrado. Tente "rua, número, cidade" ou só a cidade.</p>'; return; }
+      $(outEl).innerHTML = list.map((c,i)=>`<div class="cityopt" data-i="${i}">📍 ${esc(c.display_name.split(',').slice(0,4).join(','))}</div>`).join('');
+      [...$(outEl).children].forEach(el=>el.addEventListener('click',()=>{
+        const c = list[+el.dataset.i], a = c.address||{};
+        const city = a.city||a.town||a.village||a.municipality||'';
+        const first = c.display_name.split(',')[0];
+        cb({name: first + (city && first!==city ? ' - '+city : ''), city: city||first, lat:+c.lat, lon:+c.lon});
+        $(outEl).innerHTML=''; $(qEl).value='';
+      }));
+    })
+    .catch(()=>{ $(outEl).innerHTML='<p class="hint">Erro de conexão.</p>'; });
+}
 $('btnCity').addEventListener('click', ()=>citySearchGeneric('cityQuery','cityResults',setLocation));
 $('cityQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') citySearchGeneric('cityQuery','cityResults',setLocation); });
-$('btnHomeCity').addEventListener('click', ()=>citySearchGeneric('homeQuery','homeResults',setHome));
-$('homeQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') citySearchGeneric('homeQuery','homeResults',setHome); });
+$('btnHomeCity').addEventListener('click', ()=>searchAddress('homeQuery','homeResults',setHome));
+$('homeQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') searchAddress('homeQuery','homeResults',setHome); });
 $('btnHomeGps').addEventListener('click', async ()=>{
   toast('Localizando sua casa...');
   try{
@@ -1433,14 +1478,34 @@ function checkOnboard(){
   phRender('user');
   $('onboard').classList.add('open');
 }
+let obHome = null;
+function obSetHome(h){
+  obHome = h;
+  $('obHomeInfo').innerHTML = ico('home',13)+' Casa marcada: '+esc(h.name)+' ✔';
+}
+$('obHomeGps').addEventListener('click', async ()=>{
+  toast('Localizando sua casa...');
+  try{
+    const pos = await getGPS();
+    const name = await geoLabel(pos.lat, pos.lon);
+    obSetHome({name, city: name, lat: pos.lat, lon: pos.lon});
+  }catch(err){ toast(String(err)+' — busque pelo endereço'); }
+});
+$('obHomeBtn').addEventListener('click', ()=>searchAddress('obHomeQuery','obHomeResults', obSetHome));
+$('obHomeQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') searchAddress('obHomeQuery','obHomeResults', obSetHome); });
 $('obGo').addEventListener('click', ()=>{
   const name = $('obName').value.trim(), email = $('obEmail').value.trim();
   if(!name){ toast('Me diz seu nome! 😄'); $('obName').focus(); return; }
   if(!/.+@.+\..+/.test(email)){ toast('E-mail inválido'); $('obEmail').focus(); return; }
-  state.user = {name, email, photo: PH.user[0] || null}; save();
+  if(!obHome){ toast('Marque sua casa: GPS ou endereço 🏠'); $('obHomeQuery').focus(); return; }
+  state.user = {name, email, photo: PH.user[0] || null};
+  state.home = {name: obHome.name, lat: obHome.lat, lon: obHome.lon};
+  state.location = {name: obHome.city || obHome.name, lat: obHome.lat, lon: obHome.lon};
+  save();
   $('onboard').classList.remove('open');
   renderHeader(); renderCfg();
-  toast('Bem-vindo, '+name.split(' ')[0]+'! Defina sua cidade em Ajustes ☂️');
+  toast('Bem-vindo, '+name.split(' ')[0]+'! Tudo pronto ☂️');
+  syncRain(true);
 });
 
 /* ================= fundo animado (discreto) ================= */

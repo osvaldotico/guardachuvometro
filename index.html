@@ -1381,7 +1381,7 @@ function renderRank(){
   const all = us.map(u=>({u, s:umbrellaStats(u)})).map(x=>({...x, pts:calcPoints(x.u,x.s)}));
   renderLadder(all);
   $('h-rkPts').innerHTML = ico('star',15)+' Ranking por pontos <span style="font-weight:400;font-size:11px;color:var(--muted)">· toque para ver o extrato</span>';
-  $('h-rkRains').innerHTML = ico('rain',15)+' Por chuvas enfrentadas';
+  $('h-rkRains').innerHTML = ico('rain',15)+' Por chuvas';
   $('h-rkDist').innerHTML = ico('case',15)+' Por distância máxima de casa';
   $('h-rkDays').innerHTML = ico('cal',15)+' Por dias de posse';
   $('h-rkPrice').innerHTML = ico('coin',15)+' Por preço';

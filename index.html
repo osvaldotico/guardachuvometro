@@ -10,9 +10,23 @@
     --bg:#f4f6f9; --card:#ffffff; --ink:#1c2733; --muted:#6b7a8c;
     --brand:#1e3a5f; --brand2:#2e6da4; --accent:#4a90d9;
     --ok:#2e8b57; --warn:#c0392b; --loan:#b07d2b;
-    --chip:#e8eef5; --line:#e3e9f0;
+    --chip:#e8eef5; --line:#e3e9f0; --field:#ffffff;
+    --red-soft:#fbe9e7; --gold-soft:#fdf3dc; --green-soft:#e6f4ea;
     --radius:14px; --shadow:0 1px 4px rgba(20,40,70,.08);
   }
+  html[data-theme="dark"]{
+    --bg:#0e141c; --card:#18212d; --ink:#e6edf5; --muted:#93a5b8;
+    --brand:#9fc3e8; --brand2:#5b9bd8; --accent:#6fb0e8;
+    --ok:#5fbe8a; --warn:#e08074; --loan:#d9ab5a;
+    --chip:#233140; --line:#2b3a4b; --field:#1f2a38;
+    --red-soft:#3a2523; --gold-soft:#39301d; --green-soft:#1e3226;
+    --shadow:0 1px 5px rgba(0,0,0,.45);
+  }
+  html[data-theme="dark"] header{background:linear-gradient(135deg,#132133,#1d3a5c);}
+  html[data-theme="dark"] .rankbadge{background:#20344c; border-color:#335070;}
+  html[data-theme="dark"] .toast{background:#223349; color:#e6edf5;}
+  html[data-theme="dark"] .rep-tools{background:#132133;}
+  html[data-theme="dark"] #report{background:#fff;}   /* relatório é um documento: sempre claro */
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); font-size:15px; padding-bottom:76px;}
   #bgfx{position:fixed; inset:0; z-index:0; pointer-events:none;}
@@ -60,9 +74,9 @@
   .uname{font-weight:700; font-size:16px; display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
   .utags{margin-top:4px; display:flex; gap:5px; flex-wrap:wrap;}
   .chip{background:var(--chip); color:var(--brand); font-size:11px; padding:2px 8px; border-radius:99px; font-weight:600; display:inline-flex; align-items:center; gap:4px;}
-  .chip.red{background:#fbe9e7; color:var(--warn);}
-  .chip.green{background:#e6f4ea; color:var(--ok);}
-  .chip.gold{background:#fdf3dc; color:var(--loan);}
+  .chip.red{background:var(--red-soft); color:var(--warn);}
+  .chip.green{background:var(--green-soft); color:var(--ok);}
+  .chip.gold{background:var(--gold-soft); color:var(--loan);}
   .rankbadge{font-size:11px; padding:2px 9px; border-radius:99px; font-weight:800; background:#eef4fb; color:var(--brand2); border:1px solid #d6e5f5; white-space:nowrap;}
   .ustats{display:grid; grid-template-columns:repeat(4,1fr); padding:8px 10px 10px;}
   .stat{text-align:center; padding:6px 2px;}
@@ -77,7 +91,7 @@
   /* ---------- forms ---------- */
   label{display:block; font-size:12px; font-weight:600; color:var(--muted); margin:14px 0 6px;}
   input[type=text],input[type=email],input[type=number],input[type=date],select,textarea{
-    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--ink); font-family:inherit;}
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:var(--field); color:var(--ink); font-family:inherit;}
   textarea{resize:vertical; min-height:56px;}
   .row{display:flex; gap:10px;} .row>*{flex:1;}
   .btn{display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; cursor:pointer;
@@ -85,10 +99,10 @@
     box-shadow:0 2px 6px rgba(46,109,164,.28); transition:transform .12s ease, box-shadow .12s ease;}
   .btn:active{transform:scale(.965); box-shadow:0 1px 3px rgba(46,109,164,.2);}
   .btn.full{width:100%; margin-top:16px;}
-  .btn.ghost{background:#fff; color:var(--brand); border:1px solid var(--line); box-shadow:0 1px 3px rgba(20,40,70,.07);}
-  .btn.danger{background:#fff; color:var(--warn); border:1px solid #f3d4ce; box-shadow:0 1px 3px rgba(192,57,43,.08);}
-  .btn.gold{background:#fff; color:var(--loan); border:1px solid #eee0c2; box-shadow:0 1px 3px rgba(176,125,43,.1);}
-  .btn.green{background:#fff; color:var(--ok); border:1px solid #cfe7d8; box-shadow:0 1px 3px rgba(46,139,87,.1);}
+  .btn.ghost{background:var(--field); color:var(--brand); border:1px solid var(--line); box-shadow:0 1px 3px rgba(20,40,70,.07);}
+  .btn.danger{background:var(--field); color:var(--warn); border:1px solid var(--red-soft); box-shadow:0 1px 3px rgba(192,57,43,.08);}
+  .btn.gold{background:var(--field); color:var(--loan); border:1px solid var(--gold-soft); box-shadow:0 1px 3px rgba(176,125,43,.1);}
+  .btn.green{background:var(--field); color:var(--ok); border:1px solid var(--green-soft); box-shadow:0 1px 3px rgba(46,139,87,.1);}
   .btn.small{padding:8px 10px; font-size:12px; flex:1;}
   /* barra de ações do cartão */
   .uclick{cursor:pointer;}
@@ -104,20 +118,20 @@
   .abar .c-green{color:var(--ok);} .abar .c-mut{color:#7d8b9b;}
   .abar .c-blue{color:var(--brand2);}
   .abar .sub{font-size:9px; font-weight:600; color:var(--muted); margin-top:1px; max-width:96%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .lostbox{margin:0 14px 12px; background:#fbe9e7; border-radius:10px; padding:9px 12px; font-size:12px; color:var(--warn); line-height:1.5;}
+  .lostbox{margin:0 14px 12px; background:var(--red-soft); border-radius:10px; padding:9px 12px; font-size:12px; color:var(--warn); line-height:1.5;}
   .lostbox a{color:var(--warn); font-weight:700;}
   .seg{display:flex; gap:6px; flex-wrap:wrap;}
-  .seg button{border:1px solid var(--line); background:#fff; border-radius:99px; padding:7px 12px; font-size:13px; cursor:pointer; color:var(--ink); display:inline-flex; align-items:center; gap:5px; transition:all .15s;}
+  .seg button{border:1px solid var(--line); background:var(--field); border-radius:99px; padding:7px 12px; font-size:13px; cursor:pointer; color:var(--ink); display:inline-flex; align-items:center; gap:5px; transition:all .15s;}
   .seg button.on{background:var(--brand2); color:#fff; border-color:var(--brand2); font-weight:600;}
   /* formatos com desenhinho */
   .formatos{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
-  .fmt{border:1.5px solid var(--line); border-radius:12px; background:#fff; padding:8px 2px 6px; text-align:center; cursor:pointer; transition:all .15s; color:var(--ink);}
+  .fmt{border:1.5px solid var(--line); border-radius:12px; background:var(--field); padding:8px 2px 6px; text-align:center; cursor:pointer; transition:all .15s; color:var(--ink);}
   .fmt svg{display:block; margin:0 auto 3px; color:var(--brand2);}
   .fmt .fl{font-size:10px; font-weight:600; color:var(--muted); line-height:1.2;}
   .fmt.on{border-color:var(--brand2); background:#eef4fb; box-shadow:0 0 0 1px var(--brand2);}
   .fmt.on .fl{color:var(--brand2);}
   .photos3{display:flex; gap:8px;}
-  .pslot{flex:1; aspect-ratio:1; border:2px dashed var(--line); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; overflow:hidden; background:#fff; position:relative;}
+  .pslot{flex:1; aspect-ratio:1; border:2px dashed var(--line); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; overflow:hidden; background:var(--field); position:relative;}
   .pslot img{width:100%; height:100%; object-fit:cover;}
   .pslot .x{position:absolute; top:2px; right:2px; background:rgba(0,0,0,.55); color:#fff; border-radius:50%; width:20px; height:20px; font-size:11px; display:flex; align-items:center; justify-content:center;}
   .pslot.round{border-radius:50%; width:88px; height:88px; flex:none; aspect-ratio:auto;}
@@ -140,6 +154,17 @@
   .pos.b{background:linear-gradient(135deg,#e8bb8f,#c98d5a); color:#6b3f16;}
   .rank .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rank .val{font-weight:700; color:var(--brand); flex:none; font-size:13px;}
+  /* escada de patentes (gráfico) */
+  .ladder{display:flex; flex-direction:column; gap:8px;}
+  .lbar{height:36px; border-radius:10px; background:var(--chip); display:flex; align-items:center; gap:7px; padding:0 11px; font-size:12.5px; font-weight:700; color:var(--muted); position:relative; overflow:hidden;}
+  .lbar .fill{position:absolute; top:0; left:0; bottom:0; background:linear-gradient(90deg,var(--brand2),var(--accent)); border-radius:10px; transition:width .6s ease;}
+  .lbar span{position:relative; z-index:1;}
+  .lrow.done .lbar{color:#fff; text-shadow:0 1px 2px rgba(10,30,55,.35);}
+  .lrow.locked .lbar{opacity:.55;}
+  .lrow.eterno .lbar .fill{background:linear-gradient(90deg,#c98d2a,#e8b93c);}
+  .lpts{margin-left:auto; font-weight:800; font-size:11px;}
+  .lchips{display:flex; gap:4px; flex-wrap:wrap; margin:4px 2px 0;}
+  .lchip{font-size:10.5px; background:var(--card); border:1.5px solid var(--accent); color:var(--brand2); padding:2px 8px; border-radius:99px; font-weight:700;}
   /* ---------- modal ---------- */
   .modal{position:fixed; inset:0; background:rgba(10,25,45,.5); display:none; align-items:flex-end; justify-content:center; z-index:50;}
   .modal.open{display:flex;}
@@ -249,9 +274,8 @@
 
   <!-- ============ TAB: RANKING ============ -->
   <section id="tab-rank" hidden>
-    <button class="btn full ghost" id="btnPtsInfo" onclick="openPointsInfo()" style="margin:0 0 12px"></button>
-    <div class="kpis" id="rankKpis"></div>
     <div class="card"><h2 id="h-rkPts"></h2><ul class="rank" id="rankPts"></ul></div>
+    <div class="card"><h2 id="h-ladder"></h2><div id="rankLadder"></div></div>
     <div class="card"><h2 id="h-rkRains"></h2><ul class="rank" id="rankRains"></ul></div>
     <div class="card"><h2 id="h-rkDist"></h2><ul class="rank" id="rankDist"></ul></div>
     <div class="card"><h2 id="h-rkDays"></h2><ul class="rank" id="rankDays"></ul></div>
@@ -259,6 +283,7 @@
     <div class="card"><h2 id="h-rkCb"></h2><ul class="rank" id="rankCb"></ul></div>
     <div class="card"><h2 id="h-rkFound"></h2><ul class="rank" id="rankFound"></ul></div>
     <div class="card"><h2 id="h-rkLost"></h2><ul class="rank" id="rankLost"></ul></div>
+    <button class="btn full ghost" id="btnPtsInfo" onclick="openPointsInfo()" style="margin:4px 0 12px"></button>
   </section>
 
   <!-- ============ TAB: AJUSTES ============ -->
@@ -272,6 +297,11 @@
       <label>Seu e-mail</label>
       <input type="email" id="cfgEmail">
       <button class="btn full" id="btnProfile">Salvar perfil</button>
+    </div>
+    <div class="card">
+      <h2 id="h-tema"></h2>
+      <div class="seg" id="themeSeg"></div>
+      <p class="hint">"Auto" acompanha o modo do celular.</p>
     </div>
     <div class="card">
       <h2 id="h-local"></h2>
@@ -310,7 +340,7 @@
       <input type="file" id="importInput" accept=".json" hidden>
     </div>
     <div class="card">
-      <p class="hint" style="margin:0">Guardachuvômetro v0.7 — protótipo. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público, liberado para uso comercial; fecha com ~4 dias de atraso) complementados pela <b>Open-Meteo</b> nos dias mais recentes. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️</p>
+      <p class="hint" style="margin:0">Guardachuvômetro v0.8 — protótipo. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público, liberado para uso comercial; fecha com ~4 dias de atraso) complementados pela <b>Open-Meteo</b> nos dias mais recentes. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️</p>
     </div>
   </section>
 </main>
@@ -398,6 +428,7 @@ const I = {
   map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/>',
   mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
   alert:'<path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17v.5"/>',
+  moon:'<path d="M20 13.5A8.5 8.5 0 1 1 10.5 4a7 7 0 0 0 9.5 9.5Z"/>',
 };
 function ico(n, s=18, w=1.8){ return `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${I[n]||''}</svg>`; }
 
@@ -1314,23 +1345,41 @@ function openPointsInfo(){
     <button class="btn full ghost" style="margin-top:14px" onclick="closeModal()">Fechar</button>`;
   openModal();
 }
+function renderLadder(all){
+  $('h-ladder').innerHTML = ico('trophy',15)+' Escada de patentes';
+  const box = $('rankLadder');
+  if(!all.length){ box.innerHTML = '<p class="hint" style="margin:0">Cadastre um guarda-chuva para começar a subir a escada! ☂️</p>'; return; }
+  const best = all.reduce((m,x)=>x.pts>m.pts?x:m);
+  const levels = [{e:ETERNO.e, name:ETERNO.name, min:RANKS[0].min, special:true}, ...RANKS];
+  box.innerHTML = '<div class="ladder">' + levels.map((lv,i)=>{
+    const isEt = !!lv.special;
+    const chips = all.filter(x=>{
+      const r = rankFor(x.u, x.s, x.pts);
+      return isEt ? r===ETERNO : (r!==ETERNO && r.name===lv.name);
+    }).map(x=>`<span class="lchip">☂ ${esc(x.u.name.length>15?x.u.name.slice(0,14)+'…':x.u.name)}${x.u.retiredDate?' 🪦':''} · ${fmtNum(x.pts)} pts</span>`).join('');
+    let cls, fillW;
+    if(isEt){
+      cls = chips ? 'done eterno' : 'locked eterno';
+      fillW = chips ? 100 : 0;
+    }else{
+      const upMin = i===1 ? lv.min : levels[i-1].min;   // teto do nível (MITO fecha nele mesmo)
+      if(best.pts >= upMin){ cls='done'; fillW = 100; }
+      else if(best.pts >= lv.min){ cls='done'; fillW = Math.max(8, Math.round((best.pts-lv.min)/(upMin-lv.min)*100)); }
+      else { cls='locked'; fillW = 0; }
+    }
+    const right = isEt ? '🐉 MITO + ⏳ 3 anos' : (lv.min>0 ? fmtNum(lv.min)+'+ pts' : '0 pts');
+    return `<div class="lrow ${cls}">
+      <div class="lbar"><div class="fill" style="width:${fillW}%"></div><span>${lv.e} ${lv.name}</span><span class="lpts">${right}</span></div>
+      ${chips?`<div class="lchips">${chips}</div>`:''}
+    </div>`;
+  }).join('') + '</div>';
+}
 function renderRank(){
   $('btnPtsInfo').innerHTML = ico('star',15)+' Como ganhar pontos e subir de patente?';
   const us = state.umbrellas;
   const lost = us.filter(u=>u.retiredDate);
   const all = us.map(u=>({u, s:umbrellaStats(u)})).map(x=>({...x, pts:calcPoints(x.u,x.s)}));
-  const totalSpent = us.reduce((a,u)=>a+(u.price||0),0);
-  const totalRains = all.reduce((a,x)=>a+x.s.rains,0);
-  const totalMm = all.reduce((a,x)=>a+x.s.mmTotal,0);
-  const totalKm = all.reduce((a,x)=>a+x.s.kmTotal,0);
-  const totalPts = all.reduce((a,x)=>a+x.pts,0);
-  $('rankKpis').innerHTML = `
-    <div class="kpi"><div class="v">${fmtNum(us.length)}</div><div class="l">guarda-chuvas na vida</div></div>
-    <div class="kpi"><div class="v">${money(totalSpent)}</div><div class="l">investidos</div></div>
-    <div class="kpi"><div class="v">${fmtNum(totalRains)}</div><div class="l">chuvas enfrentadas</div></div>
-    <div class="kpi"><div class="v">${fmtNum(totalMm)} mm</div><div class="l">precipitação vivida</div></div>
-    <div class="kpi"><div class="v">${fmtKm(totalKm)}</div><div class="l">viajados juntos</div></div>
-    <div class="kpi"><div class="v">${fmtNum(totalPts)}</div><div class="l">pontos somados</div></div>`;
+  renderLadder(all);
   $('h-rkPts').innerHTML = ico('star',15)+' Ranking por pontos <span style="font-weight:400;font-size:11px;color:var(--muted)">· toque para ver o extrato</span>';
   $('h-rkRains').innerHTML = ico('rain',15)+' Por chuvas enfrentadas';
   $('h-rkDist').innerHTML = ico('case',15)+' Por distância máxima de casa';
@@ -1363,8 +1412,21 @@ function renderRank(){
 }
 
 /* ================= aba: ajustes ================= */
+function applyTheme(){
+  const t = state.theme || 'auto';
+  const resolved = t==='auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
+  document.documentElement.dataset.theme = resolved;
+}
+function setTheme(t){
+  state.theme = t; save(); applyTheme(); renderCfg();
+  toast(t==='dark' ? '🌙 Modo escuro' : t==='light' ? '☀️ Modo claro' : 'Acompanhando o celular');
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ if((state.theme||'auto')==='auto') applyTheme(); });
 function renderCfg(){
   $('h-perfil').innerHTML = ico('user',15)+' Seu perfil';
+  $('h-tema').innerHTML = ico('bulb',15)+' Aparência';
+  $('themeSeg').innerHTML = [['auto','Auto','gear'],['light','Claro','sun'],['dark','Escuro','moon']].map(t=>
+    `<button class="${(state.theme||'auto')===t[0]?'on':''}" onclick="setTheme('${t[0]}')">${ico(t[2],14)} ${t[1]}</button>`).join('');
   $('h-local').innerHTML = ico('pin',15)+' Localização (clima)';
   $('h-casa').innerHTML = ico('home',15)+' Sua casa (viagens)';
   $('h-transf').innerHTML = ico('down',15)+' Receber guarda-chuva';
@@ -1535,7 +1597,9 @@ const FX = (()=>{
   }
   function draw(){
     ctx.clearRect(0,0,W,H);
-    const blue = '46,109,164';
+    const darkMode = document.documentElement.dataset.theme==='dark';
+    const blue = darkMode ? '140,190,235' : '46,109,164';
+    const gold = darkMode ? '235,190,90' : '201,141,44';
     for(let i=0;i<parts.length;i++){
       const p = parts[i];
       if(mode==='home'){                       // chuvinha caindo
@@ -1550,7 +1614,7 @@ const FX = (()=>{
         if(p.y < -35) parts[i] = newPart(false);
       }else if(mode==='rank'){                 // estrelinhas douradas subindo
         p.y -= p.sp; p.tw += 0.03;
-        ctx.fillStyle = `rgba(201,141,44,${p.o*(0.55+0.45*Math.sin(p.tw))})`;
+        ctx.fillStyle = `rgba(${gold},${p.o*(0.55+0.45*Math.sin(p.tw))})`;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.29); ctx.fill();
         if(p.y < -12) parts[i] = newPart(false);
       }else{                                   // nuvens passando
@@ -1601,7 +1665,7 @@ function renderNavIcons(){
   });
   $('hdrIcoUmb').innerHTML = ico('umbrella',21,2);
 }
-function renderAll(){ renderNavIcons(); renderHeader(); renderHome(); renderNewForm(); renderRank(); renderCfg(); }
+function renderAll(){ applyTheme(); renderNavIcons(); renderHeader(); renderHome(); renderNewForm(); renderRank(); renderCfg(); }
 renderAll();
 checkOnboard();
 FX.setMode('home');

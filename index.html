@@ -340,7 +340,7 @@
       <input type="file" id="importInput" accept=".json" hidden>
     </div>
     <div class="card">
-      <p class="hint" style="margin:0">Guardachuvômetro v0.8 — protótipo. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público, liberado para uso comercial; fecha com ~4 dias de atraso) complementados pela <b>Open-Meteo</b> nos dias mais recentes. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️</p>
+      <p class="hint" style="margin:0">Guardachuvômetro v0.9 — protótipo. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público; os últimos ~4 dias entram assim que a NASA os consolida). Busca de lugares: <b>OpenStreetMap</b>. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️ · <a href="privacidade.html" target="_blank" style="color:var(--brand2)">Política de privacidade</a></p>
     </div>
   </section>
 </main>
@@ -573,63 +573,25 @@ async function syncRain(force){
   const daysNeeded = daysBetween(fetchFrom, today);
   const daily = url => fetch(url, {signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined})
                         .then(r => r.ok ? r.json() : Promise.reject(0));
+  /* fonte única: NASA POWER — domínio público, liberada p/ uso comercial.
+     Os últimos ~4 dias entram assim que a NASA consolida (-999 = pendente). */
   let got = 0;
-  const commit = n => {   // grava e já atualiza a tela a cada resposta que chegar
-    if(n > 0){
-      got += n;
-      state.lastSync = new Date().toISOString();
-      save(); renderHeader(); renderHome(); renderRank();
-    }
-  };
-  const ingestOM = j => {  // formato Open-Meteo
-    const dates = j?.daily?.time || [], mm = j?.daily?.precipitation_sum || [];
-    let n = 0;
-    for(let i=0;i<dates.length;i++){
-      if(dates[i] > today) continue;
-      if(mm[i] === null || mm[i] === undefined) continue;
-      state.rainLog[dates[i]] = mm[i]; n++;
-    }
-    return n;
-  };
-  /* fonte principal: NASA POWER — domínio público, liberada p/ uso comercial.
-     Dados fecham com ~4 dias de atraso (-999 = ainda não disponível). */
-  let powerOK = false;
   try{
     const j = await daily(`https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR&community=AG&longitude=${lon}&latitude=${lat}&start=${fetchFrom.replace(/-/g,'')}&end=${today.replace(/-/g,'')}&format=JSON`);
     const d = j?.properties?.parameter?.PRECTOTCORR || {};
-    let n = 0;
     for(const k in d){
       const v = d[k];
       if(v === null || v < 0) continue;
       const date = k.slice(0,4)+'-'+k.slice(4,6)+'-'+k.slice(6,8);
       if(date > today) continue;
-      state.rainLog[date] = v; n++;
+      state.rainLog[date] = v; got++;
     }
-    if(n > 0) powerOK = true;
-    commit(n);
+    if(got > 0){
+      state.lastSync = new Date().toISOString();
+      save(); renderHeader(); renderHome(); renderRank();
+    }
   }catch(e){}
-  if(powerOK){
-    // complementa só os últimos dias que a NASA ainda não fechou
-    let need = false;
-    for(let d=addDays(today,-7); d<=today; d=addDays(d,1)) if(state.rainLog[d]===undefined){ need=true; break; }
-    if(need){
-      try{ commit(ingestOM(await daily(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum&past_days=8&forecast_days=1&timezone=auto`))); }catch(e){}
-    }
-  }else{
-    // NASA fora do ar → Open-Meteo cobre tudo (previsão + arquivo histórico)
-    const reqs = [daily(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum&past_days=${Math.min(Math.max(daysNeeded,1),92)}&forecast_days=1&timezone=auto`).then(j=>{commit(ingestOM(j)); return j;})];
-    if(daysNeeded > 90){
-      reqs.push(daily(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${fetchFrom}&end_date=${addDays(today,-6)}&daily=precipitation_sum&timezone=auto`).then(j=>{commit(ingestOM(j)); return j;}));
-    }
-    const results = await Promise.allSettled(reqs);
-    if(results[0].status !== 'fulfilled'){
-      try{
-        const from90 = daysNeeded > 90 ? addDays(today,-90) : fetchFrom;
-        commit(ingestOM(await daily(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${from90}&end_date=${today}&daily=precipitation_sum&timezone=auto`)));
-      }catch(e){}
-    }
-  }
-  if(got === 0) toast('Sem conexão com os serviços de chuva — usando dados já salvos');
+  if(got === 0) toast('Sem conexão com o serviço de chuvas — usando dados já salvos');
 }
 
 /* ================= estatísticas & pontos ================= */
@@ -1095,17 +1057,20 @@ async function tripSearch(){
   const q = $('tQuery').value.trim(); if(!q) return;
   $('tResults').innerHTML = '<p class="hint">Buscando...</p>';
   try{
-    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=pt&format=json`);
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&addressdetails=1&limit=6&accept-language=pt-BR`);
     const j = await r.json();
-    if(!j.results?.length){ $('tResults').innerHTML='<p class="hint">Nada encontrado.</p>'; return; }
-    window._tripResults = j.results;
-    $('tResults').innerHTML = j.results.map((c,i)=>
-      `<div class="cityopt" onclick="pickTripCity(${i})">📍 ${esc(c.name)}${c.admin1?', '+esc(c.admin1):''} — ${esc(c.country||'')}</div>`).join('');
+    if(!j.length){ $('tResults').innerHTML='<p class="hint">Nada encontrado. Tente cidade ou "lugar, cidade".</p>'; return; }
+    window._tripResults = j;
+    $('tResults').innerHTML = j.map((c,i)=>
+      `<div class="cityopt" onclick="pickTripCity(${i})">📍 ${esc(c.display_name.split(',').slice(0,4).join(','))}</div>`).join('');
   }catch(e){ $('tResults').innerHTML='<p class="hint">Erro de conexão.</p>'; }
 }
 function pickTripCity(i){
-  const c = window._tripResults[i];
-  setTripPlace({label: c.name+(c.admin1?' - '+c.admin1:'')+(c.country&&c.country!=='Brasil'?' ('+c.country+')':''), lat: c.latitude, lon: c.longitude});
+  const c = window._tripResults[i], a = c.address||{};
+  const city = a.city||a.town||a.village||a.municipality||'';
+  const first = c.display_name.split(',')[0];
+  const country = a.country && a.country!=='Brasil' ? ' ('+a.country+')' : '';
+  setTripPlace({label: first + (city && first!==city ? ' - '+city : '') + country, lat:+c.lat, lon:+c.lon});
 }
 function doTrip(id){
   const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
@@ -1258,7 +1223,7 @@ function openReport(id){
     ${recsRep?`<h2>Perdas e reencontros</h2>${recsRep}`:''}
     ${loans?`<h2>Empréstimos</h2>${loans}`:''}
     ${u.retiredNote||retGal?`<h2>Despedida</h2>${u.retiredNote?`<p style="font-size:13px;line-height:1.6">${esc(u.retiredNote)}</p>`:''}${retGal?`<div class="rep-gal">${retGal}</div>`:''}`:''}
-    <div class="rep-foot">☂️ Guardachuvômetro — a vida secreta dos guarda-chuvas · dados de chuva: open-meteo.com</div>`;
+    <div class="rep-foot">☂️ Guardachuvômetro — a vida secreta dos guarda-chuvas · dados de chuva: NASA POWER</div>`;
   closeModal();
   $('report').classList.add('open');
 }
@@ -1451,23 +1416,6 @@ $('btnGeo').addEventListener('click', async ()=>{
     setLocation({name, lat: pos.lat, lon: pos.lon});
   }catch(err){ toast(String(err)+' — busque a cidade'); }
 });
-function citySearchGeneric(qEl, outEl, cb){
-  const q = $(qEl).value.trim(); if(!q) return;
-  $(outEl).innerHTML = '<p class="hint">Buscando...</p>';
-  fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=pt&format=json`)
-    .then(r=>r.json())
-    .then(j=>{
-      if(!j.results?.length){ $(outEl).innerHTML='<p class="hint">Nada encontrado. Tente só o nome da cidade.</p>'; return; }
-      $(outEl).innerHTML = j.results.map((c,i)=>
-        `<div class="cityopt" data-i="${i}">📍 ${esc(c.name)}${c.admin1?', '+esc(c.admin1):''} — ${esc(c.country||'')}</div>`).join('');
-      [...$(outEl).children].forEach(el=>el.addEventListener('click',()=>{
-        const c=j.results[+el.dataset.i];
-        cb({name:c.name+(c.admin1?' - '+c.admin1:''), lat:c.latitude, lon:c.longitude});
-        $(outEl).innerHTML=''; $(qEl).value='';
-      }));
-    })
-    .catch(()=>{ $(outEl).innerHTML='<p class="hint">Erro de conexão.</p>'; });
-}
 /* busca por ENDEREÇO (rua, número, cidade) — OpenStreetMap/Nominatim, grátis */
 function searchAddress(qEl, outEl, cb){
   const q = $(qEl).value.trim(); if(!q) return;
@@ -1487,8 +1435,8 @@ function searchAddress(qEl, outEl, cb){
     })
     .catch(()=>{ $(outEl).innerHTML='<p class="hint">Erro de conexão.</p>'; });
 }
-$('btnCity').addEventListener('click', ()=>citySearchGeneric('cityQuery','cityResults',setLocation));
-$('cityQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') citySearchGeneric('cityQuery','cityResults',setLocation); });
+$('btnCity').addEventListener('click', ()=>searchAddress('cityQuery','cityResults',setLocation));
+$('cityQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') searchAddress('cityQuery','cityResults',setLocation); });
 $('btnHomeCity').addEventListener('click', ()=>searchAddress('homeQuery','homeResults',setHome));
 $('homeQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') searchAddress('homeQuery','homeResults',setHome); });
 $('btnHomeGps').addEventListener('click', async ()=>{

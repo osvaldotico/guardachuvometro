@@ -90,8 +90,8 @@
   .lastloc a{color:var(--brand2); text-decoration:none; font-weight:600;}
   /* ---------- forms ---------- */
   label{display:block; font-size:12px; font-weight:600; color:var(--muted); margin:14px 0 6px;}
-  input[type=text],input[type=email],input[type=number],input[type=date],select,textarea{
-    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:var(--field); color:var(--ink); font-family:inherit;}
+  input[type=text],input[type=email],input[type=number],input[type=date],input[type=password],select,textarea{
+    width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:10px; font-size:16px; background:var(--field); color:var(--ink); font-family:inherit;}
   textarea{resize:vertical; min-height:56px;}
   .row{display:flex; gap:10px;} .row>*{flex:1;}
   .btn{display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; cursor:pointer;
@@ -1657,12 +1657,10 @@ async function showLock(){
   $('lockMsg').textContent = '';
   $('lockPw').value = '';
   $('lockscreen').classList.add('open');
-  if(state.lock?.bio && await bioAvailable()){
+  $('lockBio').hidden = true;
+  if(state.lock?.bio && await bioAvailable()){    // biometria só sob toque — nunca trava a abertura
     $('lockBio').hidden = false;
-    $('lockBio').innerHTML = ico('check',16)+' Entrar com biometria';
-    if(await tryBiometric()) return unlock();
-  }else{
-    $('lockBio').hidden = true;
+    $('lockBio').innerHTML = ico('lock',16)+' Entrar com biometria';
   }
 }
 function unlock(){

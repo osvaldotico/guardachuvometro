@@ -192,10 +192,11 @@
   .progress{height:7px; background:var(--chip); border-radius:99px; overflow:hidden; margin-top:6px;}
   .progress div{height:100%; background:linear-gradient(90deg,var(--brand2),var(--accent)); border-radius:99px; transition:width .4s;}
   /* ---------- onboarding ---------- */
-  #onboard{position:fixed; inset:0; z-index:80; background:linear-gradient(160deg,var(--brand),var(--brand2)); display:none; align-items:center; justify-content:center; padding:20px;}
-  #onboard.open{display:flex;}
-  #onboard .obcard{background:var(--card); border-radius:20px; padding:26px 20px; width:100%; max-width:400px; animation:fadeUp .35s ease;}
-  #onboard h2{color:var(--brand); font-size:20px; display:flex; align-items:center; gap:8px;}
+  #onboard,#lockscreen{position:fixed; inset:0; z-index:80; background:linear-gradient(160deg,var(--brand),var(--brand2)); display:none; align-items:center; justify-content:center; padding:20px;}
+  #onboard.open,#lockscreen.open{display:flex;}
+  #lockscreen{z-index:85;}
+  #onboard .obcard,#lockscreen .obcard{background:var(--card); border-radius:20px; padding:26px 20px; width:100%; max-width:400px; animation:fadeUp .35s ease;}
+  #onboard h2,#lockscreen h2{color:var(--brand); font-size:20px; display:flex; align-items:center; gap:8px;}
   /* ---------- relatório ---------- */
   #report{position:fixed; inset:0; z-index:90; background:#fff; overflow-y:auto; display:none;}
   #report.open{display:block; animation:fadeIn .2s ease;}
@@ -304,6 +305,16 @@
       <p class="hint">"Auto" acompanha o modo do celular.</p>
     </div>
     <div class="card">
+      <h2 id="h-seg"></h2>
+      <div id="segStatus" class="hint" style="font-weight:600"></div>
+      <label>Senha</label>
+      <input type="password" id="segPwOld" placeholder="Senha atual (deixe vazio se ainda não tem)">
+      <div class="row" style="margin-top:8px"><input type="password" id="segPw" placeholder="Nova senha"><input type="password" id="segPw2" placeholder="Repetir"></div>
+      <button class="btn full" id="btnSetPw" style="margin-top:10px">Salvar senha</button>
+      <div class="seg" id="bioSeg" style="margin-top:12px"></div>
+      <p class="hint">🔒 A senha protege o app ao abrir. Não há recuperação — anote e mantenha um backup.</p>
+    </div>
+    <div class="card">
       <h2 id="h-local"></h2>
       <p class="hint">Usada para buscar a pluviometria do seu lugar (Open-Meteo, serviço gratuito). Nada é enviado a mais ninguém.</p>
       <button class="btn full" id="btnGeo">Usar minha localização (GPS)</button>
@@ -340,7 +351,7 @@
       <input type="file" id="importInput" accept=".json" hidden>
     </div>
     <div class="card">
-      <p class="hint" style="margin:0">Guardachuvômetro v1.0. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público; os últimos ~4 dias entram assim que a NASA os consolida). Busca de lugares: <b>OpenStreetMap</b>. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️ · <a href="privacidade.html" target="_blank" style="color:var(--brand2)">Política de privacidade</a></p>
+      <p class="hint" style="margin:0">Guardachuvômetro v1.1. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público; os últimos ~4 dias entram assim que a NASA os consolida). Busca de lugares: <b>OpenStreetMap</b>. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️ · <a href="privacidade.html" target="_blank" style="color:var(--brand2)">Política de privacidade</a></p>
     </div>
   </section>
 </main>
@@ -363,8 +374,11 @@
   <div class="ph-user"></div>
   <label>Seu nome *</label>
   <input type="text" id="obName" placeholder="Como quer ser chamado?">
-  <label>Seu e-mail *</label>
+  <label>Seu e-mail * <span style="font-weight:400;color:var(--muted)">(seu login)</span></label>
   <input type="email" id="obEmail" placeholder="voce@email.com">
+  <label>Crie uma senha *</label>
+  <div class="row"><input type="password" id="obPw" placeholder="Senha"><input type="password" id="obPw2" placeholder="Repita a senha"></div>
+  <p class="hint" style="margin:6px 0 0">🔒 Protege seu app. Anote num lugar seguro — como tudo fica só no seu aparelho, não há como recuperá-la. Guarde um backup em Ajustes.</p>
   <label>Onde fica sua casa? *</label>
   <p class="hint" style="margin:0 0 8px">É a base do seu guarda-chuva: define a chuva da sua região e a distância das viagens.</p>
   <button class="btn full ghost" id="obHomeGps" style="margin-top:0">Estou em casa — usar GPS 📍</button>
@@ -375,6 +389,17 @@
   <div id="obHomeResults"></div>
   <div id="obHomeInfo" class="hint" style="font-weight:700"></div>
   <button class="btn full" id="obGo">Começar ☂️</button>
+</div></div>
+
+<!-- tela de bloqueio (login) -->
+<div id="lockscreen"><div class="obcard">
+  <h2 style="justify-content:center"><span id="lockIco"></span>Guardachuvômetro</h2>
+  <p class="hint" style="text-align:center; margin-top:4px" id="lockHi"></p>
+  <div class="ph-user" style="margin:10px 0"></div>
+  <input type="password" id="lockPw" placeholder="Sua senha" autocomplete="current-password">
+  <button class="btn full" id="lockGo">Entrar</button>
+  <button class="btn full ghost" id="lockBio" hidden style="margin-top:8px"></button>
+  <p class="hint" id="lockMsg" style="text-align:center; color:var(--warn); min-height:16px; margin-top:8px"></p>
 </div></div>
 
 <!-- relatório -->
@@ -428,6 +453,7 @@ const I = {
   map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/>',
   mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
   alert:'<path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17v.5"/>',
+  lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 15v2"/>',
   moon:'<path d="M20 13.5A8.5 8.5 0 1 1 10.5 4a7 7 0 0 0 9.5 9.5Z"/>',
 };
 function ico(n, s=18, w=1.8){ return `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${I[n]||''}</svg>`; }
@@ -488,6 +514,7 @@ function load(){
   if(!s || !s.umbrellas) s = { user:null, location:null, home:null, rainLog:{}, lastSync:null, umbrellas:[] };
   if(s.user === undefined) s.user = null;
   if(s.home === undefined) s.home = null;
+  if(s.lock === undefined) s.lock = null;
   for(const u of s.umbrellas){        // migração v0.1 → v0.2
     if(!u.formato){
       const t = u.type || '';
@@ -544,22 +571,33 @@ function geoLabel(lat,lon){
     .then(j=> j ? [j.locality||j.city, j.principalSubdivision].filter(Boolean).join(' - ') || (lat.toFixed(3)+', '+lon.toFixed(3)) : (lat.toFixed(3)+', '+lon.toFixed(3)))
     .catch(()=> lat.toFixed(3)+', '+lon.toFixed(3));
 }
-async function getGPS(){
-  const cap = window.Capacitor;
-  if(cap?.isNativePlatform?.() && cap.Plugins?.Geolocation){   // app Android: plugin nativo (pede permissão)
-    try{
-      const perm = await cap.Plugins.Geolocation.requestPermissions();
-      if(perm.location === 'denied') throw 'GPS negado nas permissões do app';
-      const p = await cap.Plugins.Geolocation.getCurrentPosition({enableHighAccuracy:true, timeout:12000});
-      return {lat:+p.coords.latitude.toFixed(5), lon:+p.coords.longitude.toFixed(5)};
-    }catch(e){ throw (typeof e==='string'?e:'GPS negado ou indisponível'); }
-  }
-  return new Promise((res,rej)=>{                              // navegador: geolocalização web
-    if(!navigator.geolocation) return rej('GPS não disponível');
+function webGPS(){
+  return new Promise((res,rej)=>{
+    if(!navigator.geolocation) return rej('GPS não disponível neste aparelho');
     navigator.geolocation.getCurrentPosition(
       p=>res({lat:+p.coords.latitude.toFixed(5), lon:+p.coords.longitude.toFixed(5)}),
-      ()=>rej('GPS negado ou indisponível'), {timeout:12000, enableHighAccuracy:true});
+      e=>rej(e && e.code===1 ? 'Permissão de localização negada' : 'Não foi possível obter o GPS (tente ao ar livre)'),
+      {timeout:30000, enableHighAccuracy:true, maximumAge:600000});   // aceita posição de até 10 min
   });
+}
+async function getGPS(){
+  const G = window.Capacitor?.Plugins?.Geolocation;
+  if(window.Capacitor?.isNativePlatform?.() && G){             // app Android: plugin nativo
+    try{
+      let perm = await G.checkPermissions();
+      if(perm.location !== 'granted' && perm.coarseLocation !== 'granted'){
+        perm = await G.requestPermissions();                  // dispara o diálogo do sistema
+      }
+      if(perm.location === 'denied' && perm.coarseLocation === 'denied')
+        throw 'Permissão de localização negada — libere nas configurações do app';
+      const p = await G.getCurrentPosition({enableHighAccuracy:true, timeout:30000, maximumAge:600000});
+      return {lat:+p.coords.latitude.toFixed(5), lon:+p.coords.longitude.toFixed(5)};
+    }catch(e){
+      try{ return await webGPS(); }catch(_){}                  // último recurso: geoloc da WebView
+      throw (typeof e==='string' ? e : (e?.message || 'Não foi possível obter o GPS'));
+    }
+  }
+  return webGPS();                                            // navegador
 }
 
 /* ================= pluviometria (Open-Meteo) ================= */
@@ -763,19 +801,41 @@ function gotoLastLoc(id){
   if(!l){ toast('Nenhum local registrado ainda — use "Deixei ele aqui" 📍'); return; }
   window.open(`https://maps.google.com/?q=${l.lat},${l.lon}`, '_blank');
 }
+let pendingLoc = null;
 async function registerLoc(id){
   closeModal();
   const u = state.umbrellas.find(x=>x.id===id); if(!u) return;
   toast('Registrando posição...');
+  let pos, label;
   try{
-    const pos = await getGPS();
-    const label = await geoLabel(pos.lat, pos.lon);
-    const now = new Date();
-    u.locHistory.push({ts: now.toISOString(), when: fmtBR(dstr(now))+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'), lat: pos.lat, lon: pos.lon, label});
-    if(u.locHistory.length > 30) u.locHistory = u.locHistory.slice(-30);
-    save(); renderHome();
-    toast('📍 '+u.name+' visto em: '+label);
-  }catch(err){ toast(String(err)); }
+    pos = await getGPS();
+    label = await geoLabel(pos.lat, pos.lon);
+  }catch(err){ toast(String(err)); return; }
+  pendingLoc = {id, pos, label};
+  PH.loc = [null];
+  $('sheet').innerHTML = `
+    <h3>${ico('pin',18)} Deixei o "${esc(u.name)}" aqui</h3>
+    <div class="lastloc" style="padding:0;margin:8px 0"><span>${ico('pin',13)} ${esc(label)}</span></div>
+    <label>Foto do local (opcional)</label>
+    <p class="hint" style="margin:0 0 8px">Tire uma foto de onde deixou — ajuda a lembrar na hora de buscar.</p>
+    <div class="photos3" id="ph-loc"></div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="saveLoc()">${ico('check',14)} Salvar local</button>
+    </div>`;
+  phRender('loc');
+  openModal();
+}
+function saveLoc(){
+  if(!pendingLoc) return;
+  const u = state.umbrellas.find(x=>x.id===pendingLoc.id); if(!u) return;
+  const {pos, label} = pendingLoc;
+  const now = new Date();
+  u.locHistory.push({ts: now.toISOString(), when: fmtBR(dstr(now))+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'), lat: pos.lat, lon: pos.lon, label, photo: PH.loc[0] || null});
+  if(u.locHistory.length > 30) u.locHistory = u.locHistory.slice(-30);
+  pendingLoc = null; PH.loc = [null];
+  save(); closeModal(); renderHome();
+  toast('📍 '+u.name+' visto em: '+label);
 }
 
 /* ================= detalhe ================= */
@@ -788,7 +848,7 @@ function openDetail(id){
   const gal = (u.photos||[]).filter(Boolean).map(p=>`<img src="${p}">`).join('');
   const recTxt = u.recursos.map(rid=>RECURSOS.find(x=>x.id===rid)?.label).filter(Boolean).join(', ');
   const locs = [...u.locHistory].reverse().slice(0,5).map(l=>
-    `<div class="mini">${ico('pin',14)}<div class="mm">${esc(l.label)} <span class="md">· ${l.when}</span></div><a href="https://maps.google.com/?q=${l.lat},${l.lon}" target="_blank">mapa</a></div>`).join('');
+    `<div class="mini">${l.photo?`<img src="${l.photo}">`:ico('pin',14)}<div class="mm">${esc(l.label)} <span class="md">· ${l.when}</span></div><a href="https://maps.google.com/?q=${l.lat},${l.lon}" target="_blank">mapa</a></div>`).join('');
   const trips = [...u.trips].reverse().map(t=>
     `<div class="mini">${t.photos&&t.photos[0]?`<img src="${t.photos[0]}">`:ico('case',16)}<div class="mm"><b>${esc(t.label)}</b> <span class="md">· ${fmtBR(t.date)} · ${fmtKm(t.distKm||0)} de casa</span>${t.note?`<div class="md">${esc(t.note)}</div>`:''}</div><a href="#" onclick="delTrip('${u.id}','${t.id}');return false" style="color:var(--warn)">excluir</a></div>`).join('');
   const recs = [...u.recoveries].reverse().map(r=>
@@ -864,7 +924,7 @@ function delTrip(uid_, tid){
 }
 
 /* ================= fotos (picker genérico) ================= */
-const PH = { new:[null,null,null], retire:[null,null,null], trip:[null,null,null], user:[null] };
+const PH = { new:[null,null,null], retire:[null,null,null], trip:[null,null,null], user:[null], loc:[null] };
 let phCtx = {arr:'new', i:0};
 function phRender(arr){
   if(arr==='user'){
@@ -1401,6 +1461,7 @@ function renderCfg(){
   $('h-tema').innerHTML = ico('bulb',15)+' Aparência';
   $('themeSeg').innerHTML = [['auto','Auto','gear'],['light','Claro','sun'],['dark','Escuro','moon']].map(t=>
     `<button class="${(state.theme||'auto')===t[0]?'on':''}" onclick="setTheme('${t[0]}')">${ico(t[2],14)} ${t[1]}</button>`).join('');
+  $('h-seg').innerHTML = ico('lock',15)+' Segurança';
   $('h-local').innerHTML = ico('pin',15)+' Localização (clima)';
   $('h-casa').innerHTML = ico('home',15)+' Sua casa (viagens)';
   $('h-transf').innerHTML = ico('down',15)+' Receber guarda-chuva';
@@ -1408,8 +1469,43 @@ function renderCfg(){
   if(state.user){ $('cfgName').value = state.user.name; $('cfgEmail').value = state.user.email; }
   PH.user[0] = state.user?.photo || null;
   phRender('user');
+  const hasPw = !!state.lock?.hash;
+  $('segStatus').innerHTML = hasPw ? ico('check',13)+' App protegido por senha' : ico('alert',13)+' Sem senha — crie uma abaixo';
+  $('segPwOld').style.display = hasPw ? '' : 'none';
+  renderBioToggle();
   $('homeInfo').innerHTML = state.home ? ico('home',13)+' Casa marcada: '+esc(state.home.name) : 'Casa ainda não marcada.';
 }
+async function renderBioToggle(){
+  const el = $('bioSeg'); if(!el) return;
+  if(!state.lock?.hash){ el.innerHTML = ''; return; }
+  const avail = await bioAvailable();
+  if(!avail){ el.innerHTML = '<span class="hint">Biometria indisponível neste aparelho.</span>'; return; }
+  const on = !!state.lock.bio;
+  el.innerHTML = `<button class="${on?'on':''}" onclick="toggleBio()">${ico('check',14)} Entrar com biometria ${on?'ativada':'desativada'}</button>`;
+}
+async function toggleBio(){
+  if(!state.lock) return;
+  if(!state.lock.bio){
+    if(!(await tryBiometric())){ toast('Não foi possível confirmar a biometria'); return; }
+    state.lock.bio = true; toast('Biometria ativada 👍');
+  }else{ state.lock.bio = false; toast('Biometria desativada'); }
+  save(); renderBioToggle();
+}
+$('btnSetPw').addEventListener('click', async ()=>{
+  const hasPw = !!state.lock?.hash;
+  if(hasPw){
+    const oldh = await hashPw($('segPwOld').value);
+    if(oldh !== state.lock.hash){ toast('Senha atual incorreta'); return; }
+  }
+  const pw = $('segPw').value, pw2 = $('segPw2').value;
+  if(pw.length < 4){ toast('A senha precisa de pelo menos 4 caracteres'); return; }
+  if(pw !== pw2){ toast('As senhas não conferem'); return; }
+  state.lock = {hash: await hashPw(pw), bio: state.lock?.bio || false};
+  save();
+  $('segPwOld').value=''; $('segPw').value=''; $('segPw2').value='';
+  renderCfg();
+  toast('Senha salva 🔒');
+});
 $('btnProfile').addEventListener('click', ()=>{
   const name = $('cfgName').value.trim(), email = $('cfgEmail').value.trim();
   if(!name){ toast('O nome é obrigatório'); return; }
@@ -1512,20 +1608,74 @@ $('obHomeGps').addEventListener('click', async ()=>{
 });
 $('obHomeBtn').addEventListener('click', ()=>searchAddress('obHomeQuery','obHomeResults', obSetHome));
 $('obHomeQuery').addEventListener('keydown', e=>{ if(e.key==='Enter') searchAddress('obHomeQuery','obHomeResults', obSetHome); });
-$('obGo').addEventListener('click', ()=>{
+$('obGo').addEventListener('click', async ()=>{
   const name = $('obName').value.trim(), email = $('obEmail').value.trim();
+  const pw = $('obPw').value, pw2 = $('obPw2').value;
   if(!name){ toast('Me diz seu nome! 😄'); $('obName').focus(); return; }
   if(!/.+@.+\..+/.test(email)){ toast('E-mail inválido'); $('obEmail').focus(); return; }
+  if(pw.length < 4){ toast('Crie uma senha de pelo menos 4 caracteres 🔒'); $('obPw').focus(); return; }
+  if(pw !== pw2){ toast('As senhas não conferem'); $('obPw2').focus(); return; }
   if(!obHome){ toast('Marque sua casa: GPS ou endereço 🏠'); $('obHomeQuery').focus(); return; }
   state.user = {name, email, photo: PH.user[0] || null};
+  state.lock = {hash: await hashPw(pw), bio: false};
   state.home = {name: obHome.name, lat: obHome.lat, lon: obHome.lon};
   state.location = {name: obHome.city || obHome.name, lat: obHome.lat, lon: obHome.lon};
   save();
   $('onboard').classList.remove('open');
+  $('obPw').value=''; $('obPw2').value='';
   renderHeader(); renderCfg();
   toast('Bem-vindo, '+name.split(' ')[0]+'! Tudo pronto ☂️');
   syncRain(true);
 });
+
+/* ================= trava de acesso (login/senha + biometria) ================= */
+async function hashPw(pw){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gcm-salt:'+pw));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function bioPlugin(){
+  const c = window.Capacitor;
+  return (c?.isNativePlatform?.() && c.Plugins?.NativeBiometric) ? c.Plugins.NativeBiometric : null;
+}
+async function bioAvailable(){
+  const B = bioPlugin(); if(!B) return false;
+  try{ const r = await B.isAvailable(); return !!(r && r.isAvailable); }catch(e){ return false; }
+}
+async function tryBiometric(){
+  const B = bioPlugin(); if(!B) return false;
+  try{ await B.verifyIdentity({reason:'Desbloquear o Guardachuvômetro', title:'Guardachuvômetro'}); return true; }
+  catch(e){ return false; }
+}
+async function showLock(){
+  $('lockIco').innerHTML = ico('umbrella',22,2);
+  $('lockHi').textContent = state.user ? 'Olá de novo, '+state.user.name.split(' ')[0]+'! Entre para continuar.' : '';
+  document.querySelectorAll('#lockscreen .ph-user').forEach(el=>{
+    el.innerHTML = state.user?.photo
+      ? `<div class="pslot round" style="margin:0 auto"><img src="${state.user.photo}"></div>`
+      : `<div class="pslot round" style="margin:0 auto">${ico('user',26)}</div>`;
+  });
+  $('lockMsg').textContent = '';
+  $('lockPw').value = '';
+  $('lockscreen').classList.add('open');
+  if(state.lock?.bio && await bioAvailable()){
+    $('lockBio').hidden = false;
+    $('lockBio').innerHTML = ico('check',16)+' Entrar com biometria';
+    if(await tryBiometric()) return unlock();
+  }else{
+    $('lockBio').hidden = true;
+  }
+}
+function unlock(){
+  $('lockscreen').classList.remove('open');
+  FX.setMode('home');
+}
+$('lockGo').addEventListener('click', async ()=>{
+  const h = await hashPw($('lockPw').value);
+  if(h === state.lock?.hash){ unlock(); }
+  else{ $('lockMsg').textContent = 'Senha incorreta'; $('lockPw').value=''; $('lockPw').focus(); }
+});
+$('lockPw').addEventListener('keydown', e=>{ if(e.key==='Enter') $('lockGo').click(); });
+$('lockBio').addEventListener('click', async ()=>{ if(await tryBiometric()) unlock(); else $('lockMsg').textContent = 'Biometria não reconhecida'; });
 
 /* ================= fundo animado (discreto) ================= */
 const FX = (()=>{
@@ -1625,6 +1775,7 @@ function renderNavIcons(){
 function renderAll(){ applyTheme(); renderNavIcons(); renderHeader(); renderHome(); renderNewForm(); renderRank(); renderCfg(); }
 renderAll();
 checkOnboard();
+if(state.user && state.lock?.hash) showLock();   // já cadastrado e com senha → pede login
 FX.setMode('home');
 syncRain(false);   // atualização silenciosa ao abrir — sem alarmes ☂️
 </script>

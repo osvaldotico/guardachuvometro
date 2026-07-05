@@ -340,7 +340,7 @@
       <input type="file" id="importInput" accept=".json" hidden>
     </div>
     <div class="card">
-      <p class="hint" style="margin:0">Guardachuvômetro v0.9 — protótipo. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público; os últimos ~4 dias entram assim que a NASA os consolida). Busca de lugares: <b>OpenStreetMap</b>. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️ · <a href="privacidade.html" target="_blank" style="color:var(--brand2)">Política de privacidade</a></p>
+      <p class="hint" style="margin:0">Guardachuvômetro v1.0. Chuva do dia conta a partir de 1&nbsp;mm de precipitação. Dados meteorológicos: <b>NASA POWER</b> (domínio público; os últimos ~4 dias entram assim que a NASA os consolida). Busca de lugares: <b>OpenStreetMap</b>. Sem alarmes, sem notificações: ele só se atualiza quando você abre. ☂️ · <a href="privacidade.html" target="_blank" style="color:var(--brand2)">Política de privacidade</a></p>
     </div>
   </section>
 </main>
@@ -544,8 +544,17 @@ function geoLabel(lat,lon){
     .then(j=> j ? [j.locality||j.city, j.principalSubdivision].filter(Boolean).join(' - ') || (lat.toFixed(3)+', '+lon.toFixed(3)) : (lat.toFixed(3)+', '+lon.toFixed(3)))
     .catch(()=> lat.toFixed(3)+', '+lon.toFixed(3));
 }
-function getGPS(){
-  return new Promise((res,rej)=>{
+async function getGPS(){
+  const cap = window.Capacitor;
+  if(cap?.isNativePlatform?.() && cap.Plugins?.Geolocation){   // app Android: plugin nativo (pede permissão)
+    try{
+      const perm = await cap.Plugins.Geolocation.requestPermissions();
+      if(perm.location === 'denied') throw 'GPS negado nas permissões do app';
+      const p = await cap.Plugins.Geolocation.getCurrentPosition({enableHighAccuracy:true, timeout:12000});
+      return {lat:+p.coords.latitude.toFixed(5), lon:+p.coords.longitude.toFixed(5)};
+    }catch(e){ throw (typeof e==='string'?e:'GPS negado ou indisponível'); }
+  }
+  return new Promise((res,rej)=>{                              // navegador: geolocalização web
     if(!navigator.geolocation) return rej('GPS não disponível');
     navigator.geolocation.getCurrentPosition(
       p=>res({lat:+p.coords.latitude.toFixed(5), lon:+p.coords.longitude.toFixed(5)}),
